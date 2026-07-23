@@ -10,6 +10,16 @@
 !.yarn/releases
 !.yarn/versions
 
+# IDE
+.idea/
+
+# claude
+.claude/
+
+# windows
+Thumbs.db
+desktop.ini
+
 # testing
 /coverage
 
@@ -32,6 +42,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# user downloads (generated media kept locally)
+/downloads/*
+!/downloads/.gitkeep
 
 # vercel
 .vercel
