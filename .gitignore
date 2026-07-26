@@ -13,8 +13,13 @@
 # IDE
 .idea/
 
-# claude
+# docs (设计文档 / 笔记，仅本地，不纳入版本控制)
+/docs
+
+# claude code & agent tooling (local, auto-generated, not for version control)
 .claude/
+CLAUDE.md
+AGENTS.md
 
 # windows
 Thumbs.db
@@ -43,10 +48,6 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
-
-# user downloads (generated media kept locally)
-/downloads/*
-!/downloads/.gitkeep
 
 # vercel
 .vercel
