@@ -5,6 +5,7 @@ import LogoutButton from "./LogoutButton";
 const links = [
   { href: "/image", label: "AI 生图" },
   { href: "/video", label: "AI 生视频" },
+  { href: "/history", label: "历史" },
 ];
 
 export default async function Nav() {

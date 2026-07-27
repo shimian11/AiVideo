@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { IMAGE_SIZES, IMAGE_RATIOS } from "@/lib/constants";
 import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
@@ -19,6 +19,19 @@ export default function ImageStudio() {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noApiKey, setNoApiKey] = useState(false);
+
+  // 从 URL 参数预填（重跑）
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const p = params.get("prompt");
+    if (p) setPrompt(p);
+    const s = params.get("size");
+    if (s) setSize(s);
+    const r = params.get("ratio");
+    if (r) setRatio(r);
+    const m = params.get("mode");
+    if (m === "img2img" || m === "text2img") setMode(m);
+  }, []);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

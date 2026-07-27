@@ -55,6 +55,12 @@ export default function VideoStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 从 URL 参数预填（重跑）
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("prompt");
+    if (p) setPrompt(p);
+  }, []);
+
   async function onImg2vidFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
