@@ -1,14 +1,24 @@
+import { auth } from "@/lib/auth";
+import { getDecryptedApiKey } from "@/lib/api-key";
 import { getVideoResult, AgnesError } from "@/lib/agnes";
 
-// 轮询视频任务状态: GET /api/video/status?video_id=xxx
 export async function GET(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "未登录" }, { status: 401 });
+  }
+  const apiKey = await getDecryptedApiKey(session.user.id);
+  if (!apiKey) {
+    return Response.json(
+      { error: "请先在设置页填入 Agnes API Key", code: "NO_API_KEY" },
+      { status: 409 },
+    );
+  }
   try {
     const { searchParams } = new URL(request.url);
     const videoId = searchParams.get("video_id");
-    if (!videoId) {
-      return Response.json({ error: "缺少 video_id 参数" }, { status: 400 });
-    }
-    const result = await getVideoResult(videoId);
+    if (!videoId) return Response.json({ error: "缺少 video_id 参数" }, { status: 400 });
+    const result = await getVideoResult(videoId, apiKey);
     return Response.json(result);
   } catch (err) {
     if (err instanceof AgnesError) {

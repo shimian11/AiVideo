@@ -1,6 +1,6 @@
 // Agnes AI API 客户端封装
 // 文档: https://agnes-ai.com/zh-Hans/docs
-// 所有调用都在服务端执行，API Key 从环境变量读取，绝不暴露给前端。
+// 所有调用都在服务端执行，apiKey 由调用方（路由）从用户加密存储中解密后传入。
 
 const DEFAULT_BASE_URL = "https://apihub.agnes-ai.com";
 
@@ -22,16 +22,8 @@ export class AgnesError extends Error {
   }
 }
 
-function getConfig() {
-  const apiKey = process.env.AGNES_API_KEY;
-  const baseUrl = (process.env.AGNES_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
-  if (!apiKey || apiKey === "your_key_here") {
-    throw new AgnesError(
-      "未配置 AGNES_API_KEY，请在项目根目录 .env.local 中填入你的 Agnes API Key",
-      500,
-    );
-  }
-  return { apiKey, baseUrl };
+function getBaseUrl(): string {
+  return (process.env.AGNES_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
 }
 
 function extractErrorMessage(data: unknown): string | undefined {
@@ -53,8 +45,12 @@ interface AgnesFetchOptions extends RequestInit {
   timeoutMs?: number;
 }
 
-async function agnesFetch(path: string, init: AgnesFetchOptions = {}): Promise<unknown> {
-  const { apiKey, baseUrl } = getConfig();
+async function agnesFetch(
+  path: string,
+  apiKey: string,
+  init: AgnesFetchOptions = {},
+): Promise<unknown> {
+  const baseUrl = getBaseUrl();
   const { timeoutMs = 180000, headers, ...rest } = init;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -87,10 +83,7 @@ async function agnesFetch(path: string, init: AgnesFetchOptions = {}): Promise<u
     if (err instanceof Error && err.name === "AbortError") {
       throw new AgnesError("请求超时，Agnes 生成耗时较长，请稍后重试", 408);
     }
-    throw new AgnesError(
-      err instanceof Error ? err.message : "网络请求失败",
-      500,
-    );
+    throw new AgnesError(err instanceof Error ? err.message : "网络请求失败", 500);
   } finally {
     clearTimeout(timer);
   }
@@ -105,19 +98,22 @@ export interface ChatMessage {
 
 export async function chatCompletion(
   messages: ChatMessage[],
+  apiKey: string,
   opts: { temperature?: number; maxTokens?: number } = {},
 ): Promise<string> {
-  const data = (await agnesFetch("/v1/chat/completions", {
-    method: "POST",
-    body: JSON.stringify({
-      model: MODELS.chat,
-      messages,
-      temperature: opts.temperature ?? 0.7,
-      max_tokens: opts.maxTokens ?? 1024,
-    }),
-  })) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
+  const data = (await agnesFetch(
+    "/v1/chat/completions",
+    apiKey,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        model: MODELS.chat,
+        messages,
+        temperature: opts.temperature ?? 0.7,
+        max_tokens: opts.maxTokens ?? 1024,
+      }),
+    },
+  )) as { choices?: Array<{ message?: { content?: string } }> };
   return data?.choices?.[0]?.message?.content ?? "";
 }
 
@@ -125,10 +121,10 @@ export async function chatCompletion(
 
 export interface GenerateImageParams {
   prompt: string;
-  size: string; // "1K" | "2K" | "3K" | "4K" 或 "1024x768"
-  ratio?: string; // "1:1" | "16:9" | ...
+  size: string;
+  ratio?: string;
   mode?: "text2img" | "img2img";
-  inputImage?: string; // 图生图输入: 公开 URL 或 data URI
+  inputImage?: string;
 }
 
 export interface GeneratedImage {
@@ -136,13 +132,14 @@ export interface GeneratedImage {
   b64: string | null;
 }
 
-export async function generateImage(params: GenerateImageParams): Promise<GeneratedImage> {
+export async function generateImage(
+  params: GenerateImageParams,
+  apiKey: string,
+): Promise<GeneratedImage> {
   const { prompt, size, ratio, mode = "text2img", inputImage } = params;
-  // 关键: response_format 必须放在 extra_body 内，不能放顶层
   const extraBody: Record<string, unknown> = { response_format: "url" };
   if (mode === "img2img") {
     if (!inputImage) throw new AgnesError("图生图需要提供输入图像 URL", 400);
-    // 关键: 图生图用 extra_body.image 数组，不要传 tags
     extraBody.image = [inputImage];
   }
   const body: Record<string, unknown> = {
@@ -153,13 +150,11 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
   };
   if (ratio) body.ratio = ratio;
 
-  const data = (await agnesFetch("/v1/images/generations", {
-    method: "POST",
-    body: JSON.stringify(body),
-    timeoutMs: 360000, // 图片生成可能较慢，给到 6 分钟
-  })) as {
-    data?: Array<{ url?: string; b64_json?: string }>;
-  };
+  const data = (await agnesFetch(
+    "/v1/images/generations",
+    apiKey,
+    { method: "POST", body: JSON.stringify(body), timeoutMs: 360000 },
+  )) as { data?: Array<{ url?: string; b64_json?: string }> };
   const item = data?.data?.[0];
   return { url: item?.url ?? null, b64: item?.b64_json ?? null };
 }
@@ -169,12 +164,12 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
 export interface CreateVideoParams {
   prompt: string;
   mode?: "text2vid" | "img2vid" | "keyframes";
-  image?: string; // 图生视频: 单张图片 URL
-  keyframes?: string[]; // 关键帧动画: 多张图片 URL
+  image?: string;
+  keyframes?: string[];
   width?: number;
   height?: number;
-  numFrames?: number; // 必须 <= 441 且满足 8n+1
-  frameRate?: number; // 1-60
+  numFrames?: number;
+  frameRate?: number;
   negativePrompt?: string;
   seed?: number;
 }
@@ -188,18 +183,13 @@ export interface VideoTask {
   size?: string;
 }
 
-export async function createVideoTask(params: CreateVideoParams): Promise<VideoTask> {
+export async function createVideoTask(
+  params: CreateVideoParams,
+  apiKey: string,
+): Promise<VideoTask> {
   const {
-    prompt,
-    mode = "text2vid",
-    image,
-    keyframes,
-    width,
-    height,
-    numFrames,
-    frameRate,
-    negativePrompt,
-    seed,
+    prompt, mode = "text2vid", image, keyframes, width, height,
+    numFrames, frameRate, negativePrompt, seed,
   } = params;
 
   const body: Record<string, unknown> = { model: MODELS.video, prompt };
@@ -216,18 +206,13 @@ export async function createVideoTask(params: CreateVideoParams): Promise<VideoT
     body.extra_body = { image: keyframes, mode: "keyframes" };
   }
 
-  const data = (await agnesFetch("/v1/videos", {
-    method: "POST",
-    body: JSON.stringify(body),
-    timeoutMs: 60000,
-  })) as {
-    id?: string;
-    task_id?: string;
-    video_id?: string;
-    status?: string;
-    progress?: number;
-    seconds?: string;
-    size?: string;
+  const data = (await agnesFetch(
+    "/v1/videos",
+    apiKey,
+    { method: "POST", body: JSON.stringify(body), timeoutMs: 60000 },
+  )) as {
+    id?: string; task_id?: string; video_id?: string;
+    status?: string; progress?: number; seconds?: string; size?: string;
   };
 
   return {
@@ -241,7 +226,7 @@ export async function createVideoTask(params: CreateVideoParams): Promise<VideoT
 }
 
 export interface VideoResult {
-  status: string; // queued | in_progress | completed | failed
+  status: string;
   progress: number;
   url?: string;
   seconds?: string;
@@ -249,18 +234,17 @@ export interface VideoResult {
   error?: string;
 }
 
-export async function getVideoResult(videoId: string): Promise<VideoResult> {
+export async function getVideoResult(
+  videoId: string,
+  apiKey: string,
+): Promise<VideoResult> {
   const data = (await agnesFetch(
     `/agnesapi?video_id=${encodeURIComponent(videoId)}`,
+    apiKey,
     { method: "GET", timeoutMs: 30000 },
   )) as {
-    status?: string;
-    progress?: number;
-    seconds?: string;
-    size?: string;
-    url?: string;
-    metadata?: { url?: string };
-    error?: unknown;
+    status?: string; progress?: number; seconds?: string; size?: string;
+    url?: string; metadata?: { url?: string }; error?: unknown;
   };
 
   let error: string | undefined;
@@ -273,7 +257,6 @@ export async function getVideoResult(videoId: string): Promise<VideoResult> {
   return {
     status: data?.status ?? "unknown",
     progress: data?.progress ?? 0,
-    // Agnes 实际把视频 URL 放在顶层 url 字段；文档里的 metadata.url 作为兜底
     url: data?.url || data?.metadata?.url,
     seconds: data?.seconds,
     size: data?.size,
@@ -283,10 +266,6 @@ export async function getVideoResult(videoId: string): Promise<VideoResult> {
 
 // ============ 下载安全: 媒体 URL 白名单 (防 SSRF) ============
 
-/**
- * 校验 URL 是否属于 Agnes 返回的媒体域名白名单。
- * 下载端点只允许抓取这些域名，避免被滥用为任意 URL 代理。
- */
 export function isAllowedMediaUrl(raw: string): boolean {
   let u: URL;
   try {
@@ -304,7 +283,6 @@ export function isAllowedMediaUrl(raw: string): boolean {
   ) {
     return true;
   }
-  // Agnes 图片存储在 GCS 的 agnes-aigc bucket
   if (host === "storage.googleapis.com" && u.pathname.toLowerCase().startsWith("/agnes-aigc/")) {
     return true;
   }

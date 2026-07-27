@@ -1,35 +1,51 @@
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { getDecryptedApiKey } from "@/lib/api-key";
 import { generateImage, AgnesError } from "@/lib/agnes";
 
-// 图片生成: 文生图 / 图生图 (同步调用，可能耗时数十秒)
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "未登录" }, { status: 401 });
+  }
+  const apiKey = await getDecryptedApiKey(session.user.id);
+  if (!apiKey) {
+    return Response.json(
+      { error: "请先在设置页填入 Agnes API Key", code: "NO_API_KEY" },
+      { status: 409 },
+    );
+  }
   try {
     const body = await request.json().catch(() => ({}));
     const { prompt, size, ratio, mode, inputImage } = body as {
-      prompt?: string;
-      size?: string;
-      ratio?: string;
-      mode?: string;
-      inputImage?: string;
+      prompt?: string; size?: string; ratio?: string; mode?: string; inputImage?: string;
     };
+    if (!prompt?.trim()) return Response.json({ error: "请输入提示词" }, { status: 400 });
+    if (!size) return Response.json({ error: "请选择尺寸" }, { status: 400 });
 
-    if (!prompt || !prompt.trim()) {
-      return Response.json({ error: "请输入提示词" }, { status: 400 });
-    }
-    if (!size || typeof size !== "string") {
-      return Response.json({ error: "请选择尺寸" }, { status: 400 });
-    }
-
-    const result = await generateImage({
-      prompt: prompt.trim(),
-      size,
-      ratio: ratio || undefined,
-      mode: mode === "img2img" ? "img2img" : "text2img",
-      inputImage: inputImage || undefined,
-    });
-
+    const m = mode === "img2img" ? "img2img" : "text2img";
+    const result = await generateImage(
+      {
+        prompt: prompt.trim(),
+        size,
+        ratio: ratio || undefined,
+        mode: m,
+        inputImage: inputImage || undefined,
+      },
+      apiKey,
+    );
     if (!result.url && !result.b64) {
       return Response.json({ error: "生成失败: 未返回图片" }, { status: 502 });
     }
+
+    await prisma.generationHistory.create({
+      data: {
+        userId: session.user.id,
+        type: "IMAGE",
+        prompt: prompt.trim(),
+        config: { size, ratio, mode: m },
+      },
+    });
 
     return Response.json({ url: result.url, b64: result.b64 });
   } catch (err) {

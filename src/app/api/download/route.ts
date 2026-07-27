@@ -1,4 +1,5 @@
 import { isAllowedMediaUrl } from "@/lib/agnes";
+import { auth } from "@/lib/auth";
 
 type MediaType = "image" | "video";
 
@@ -31,6 +32,10 @@ function slugify(text: string): string {
 // 后端加上 Content-Disposition: attachment 可确保浏览器弹出下载而非在线打开。
 export async function GET(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return Response.json({ error: "未登录" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const url = searchParams.get("url");
     const type = searchParams.get("type") as MediaType | null;
