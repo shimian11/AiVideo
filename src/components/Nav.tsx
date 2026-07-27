@@ -1,11 +1,16 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
+import LogoutButton from "./LogoutButton";
 
 const links = [
   { href: "/image", label: "AI 生图" },
   { href: "/video", label: "AI 生视频" },
 ];
 
-export default function Nav() {
+export default async function Nav() {
+  const session = await auth();
+  const user = session?.user;
+
   return (
     <nav className="border-b border-zinc-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -13,7 +18,7 @@ export default function Nav() {
           <span className="text-indigo-600">◆</span>
           <span>Agnes Studio</span>
         </Link>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -23,6 +28,19 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
+          {user ? (
+            <div className="flex items-center gap-2 pl-2">
+              <span className="text-sm text-zinc-500">{user.email}</span>
+              <LogoutButton />
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="ml-2 rounded-lg bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200"
+            >
+              登录
+            </Link>
+          )}
         </div>
       </div>
     </nav>
