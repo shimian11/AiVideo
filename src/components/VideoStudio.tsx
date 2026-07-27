@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
 import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
 
@@ -33,6 +34,7 @@ export default function VideoStudio() {
   const [progress, setProgress] = useState(0);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noApiKey, setNoApiKey] = useState(false);
 
   const cancelledRef = useRef(false);
 
@@ -179,6 +181,7 @@ export default function VideoStudio() {
 
     setLoading(true);
     setError(null);
+    setNoApiKey(false);
     setResultUrl(null);
     setStatus("");
     setProgress(0);
@@ -189,7 +192,15 @@ export default function VideoStudio() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "创建任务失败");
+      if (!res.ok) {
+        if (data.code === "NO_API_KEY") {
+          setError("未设置 Agnes API Key，请先到设置页填入");
+          setNoApiKey(true);
+          setLoading(false);
+          return;
+        }
+        throw new Error(data.error || "创建任务失败");
+      }
       setVideoId(data.videoId);
       localStorage.setItem("agnes_video_id", data.videoId);
       setStatus(data.status || "queued");
@@ -354,6 +365,14 @@ export default function VideoStudio() {
         {error && (
           <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         )}
+        {noApiKey && (
+          <Link
+            href="/settings"
+            className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            前往设置页填入 API Key
+          </Link>
+        )}
       </div>
 
       {/* 结果区 */}
@@ -398,6 +417,9 @@ export default function VideoStudio() {
           >
             ⬇ 下载并保存
           </button>
+        )}
+        {resultUrl && !busy && (
+          <p className="text-xs text-zinc-400">结果不会保存，请及时下载到本地</p>
         )}
       </div>
     </div>
