@@ -15,7 +15,7 @@ if (
   process.env.AIVIDEO_DEV_TUNNEL !== "false"
 ) {
   createTunnel(
-    { autoClose: false },
+    { autoClose: false, reconnectOnError: false },
     { host: "127.0.0.1", port: 15432 },
     {
       host: "20.222.19.189",
