@@ -31,6 +31,8 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?请在 .env 设置 ENCRYPTION_KEY}
       AGNES_BASE_URL: https://apihub.agnes-ai.com
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      AGNES_DEFAULT_API_KEY: ${AGNES_DEFAULT_API_KEY:-}
     ports:
       - "3000:3000"
     command: ["node", "server.js"]
@@ -50,6 +52,7 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/agnes_db?schema=public
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?请在 .env 设置 ENCRYPTION_KEY}
       AGNES_BASE_URL: https://apihub.agnes-ai.com
+      AGNES_DEFAULT_API_KEY: ${AGNES_DEFAULT_API_KEY:-}
 
 volumes:
   db_data:
