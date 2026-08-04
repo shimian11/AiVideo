@@ -135,7 +135,21 @@ export default function VideoStudio() {
             done = true;
           }
         } else {
-          errors++;
+          // 非 404 的错误响应：尝试解析 JSON，识别 NO_API_KEY 等明确错误
+          let code: string | undefined;
+          try {
+            const data = await res.json();
+            code = data?.code;
+          } catch {
+            // 响应体不是 JSON，按普通错误处理
+          }
+          if (code === "NO_API_KEY") {
+            setError("未设置 Agnes API Key，请先到设置页填入");
+            setNoApiKey(true);
+            done = true;
+          } else {
+            errors++;
+          }
         }
       } catch {
         errors++;

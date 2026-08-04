@@ -54,7 +54,11 @@ export default function HistoryPage() {
 
   async function deleteItem(id: string) {
     if (!confirm("删除这条历史？")) return;
-    await fetch(`/api/history/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/history/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("删除失败，请稍后重试");
+      return;
+    }
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
 
@@ -74,7 +78,11 @@ export default function HistoryPage() {
 
   async function deleteTag(id: string) {
     if (!confirm("删除此标签？会从所有历史中移除。")) return;
-    await fetch(`/api/tags/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/tags/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      alert("删除标签失败，请稍后重试");
+      return;
+    }
     setTags((prev) => prev.filter((t) => t.id !== id));
     setItems((prev) =>
       prev.map((i) => ({ ...i, tags: i.tags.filter((t) => t.tag.id !== id) })),
@@ -89,11 +97,15 @@ export default function HistoryPage() {
     const next = current.includes(tagId)
       ? current.filter((id) => id !== tagId)
       : [...current, tagId];
-    await fetch(`/api/history/${itemId}/tags`, {
+    const res = await fetch(`/api/history/${itemId}/tags`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tagIds: next }),
     });
+    if (!res.ok) {
+      alert("更新标签失败，请稍后重试");
+      return;
+    }
     setItems((prev) =>
       prev.map((i) =>
         i.id === itemId

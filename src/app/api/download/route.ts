@@ -60,17 +60,19 @@ export async function GET(request: Request) {
     }
     const contentType =
       res.headers.get("content-type") || (type === "image" ? "image/png" : "video/mp4");
-    const buf = Buffer.from(await res.arrayBuffer());
     const ext = extFromContentType(contentType) || (type === "image" ? "png" : "mp4");
     const filename = `${slugify(name)}.${ext}`;
 
-    return new Response(new Uint8Array(buf), {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": String(buf.length),
-      },
-    });
+    // 流式透传上游响应体，避免把整个文件读进内存（大视频 OOM 风险）。
+    // Content-Length 仅在上游提供时透传；流式无法预知大小时不设置。
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    };
+    const contentLength = res.headers.get("content-length");
+    if (contentLength) headers["Content-Length"] = contentLength;
+
+    return new Response(res.body, { headers });
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : "下载失败" },

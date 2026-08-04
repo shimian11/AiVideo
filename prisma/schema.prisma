@@ -7,7 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============ 认证（Auth.js 标准 + 密码） ============
+// ============ 认证（复用现有） ============
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -22,6 +23,8 @@ model User {
   apiKey        UserApiKey?
   history       GenerationHistory[]
   tags          Tag[]
+  series        Series[]
+  jobs          Job[]
 }
 
 model Account {
@@ -37,7 +40,6 @@ model Account {
   scope             String?
   id_token          String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@unique([provider, providerAccountId])
 }
 
@@ -53,11 +55,9 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
-
   @@unique([identifier, token])
 }
 
-// ============ 用户 Agnes API Key（加密存储） ============
 model UserApiKey {
   id           String   @id @default(cuid())
   userId       String   @unique
@@ -67,7 +67,259 @@ model UserApiKey {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ============ 生成历史（只存提示词+配置，不存媒体） ============
+// ============ 短剧核心实体 ============
+
+/// 剧集：一部短剧的顶层容器
+model Series {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  synopsis    String   @db.Text
+  genre       String
+  targetCount Int      @default(10)
+  status      String   @default("planning")
+  coverUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characters  Character[]
+  locations   Location[]
+  styles      StyleProfile[]
+  seasons     Season[]
+  scripts     Script[]
+
+  @@index([userId])
+}
+
+/// 剧本：可AI生成或用户上传
+model Script {
+  id          String   @id @default(cuid())
+  seriesId    String
+  version     Int      @default(1)
+  title       String
+  content     String   @db.Text
+  source      String   @default("manual")
+  outline     String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes    Episode[]
+
+  @@index([seriesId])
+}
+
+/// 角色：跨集复用的角色档案
+model Character {
+  id              String   @id @default(cuid())
+  seriesId        String
+  name            String
+  role            String
+  description     String   @db.Text
+  personality     String?  @db.Text
+  outfit          String?  @db.Text
+  features        String?  @db.Text
+  voicePreset     String?
+  referenceUrl    String?
+  referencePrompt String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  series          Series          @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  shotCharacters  ShotCharacter[]
+
+  @@index([seriesId])
+}
+
+/// 场景：跨集复用的场景档案
+model Location {
+  id            String   @id @default(cuid())
+  seriesId      String
+  name          String
+  description   String   @db.Text
+  mood          String?
+  lightingNotes String?
+  referenceUrl  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  scenes        Scene[]
+
+  @@index([seriesId])
+}
+
+/// 风格设定
+model StyleProfile {
+  id             String   @id @default(cuid())
+  seriesId       String
+  name           String
+  artStyle       String   @db.Text
+  colorPalette   String?
+  cameraStyle    String?
+  negativePrompt String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  series         Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@index([seriesId])
+}
+
+/// 季
+model Season {
+  id          String   @id @default(cuid())
+  seriesId    String
+  number      Int      @default(1)
+  title       String?
+  createdAt   DateTime @default(now())
+
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episodes    Episode[]
+
+  @@index([seriesId])
+}
+
+/// 集
+model Episode {
+  id          String   @id @default(cuid())
+  seasonId    String
+  scriptId    String?
+  number      Int
+  title       String?
+  duration    Int?     @default(60)
+  status      String   @default("draft")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  season      Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  script      Script?        @relation(fields: [scriptId], references: [id], onDelete: SetNull)
+  scenes      Scene[]
+  assets      EpisodeAsset[]
+
+  @@index([seasonId])
+}
+
+/// 场
+model Scene {
+  id          String   @id @default(cuid())
+  episodeId   String
+  number      Int
+  locationId  String?
+  description String?  @db.Text
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  episode     Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  shots       Shot[]
+
+  @@index([episodeId])
+}
+
+/// 分镜
+model Shot {
+  id              String   @id @default(cuid())
+  sceneId         String
+  number          Int
+  shotType        String?
+  duration        Int      @default(5)
+
+  imagePrompt     String?  @db.Text
+  videoPrompt     String?  @db.Text
+  dialogue        String?  @db.Text
+  voiceConfig     Json?
+
+  keyframeUrl     String?
+  videoUrl        String?
+  audioUrl        String?
+
+  status          String   @default("pending")
+  errorMessage    String?  @db.Text
+  generateConfig  Json?
+  retryCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  scene           Scene           @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  characters      ShotCharacter[]
+
+  @@index([sceneId])
+}
+
+/// 分镜-角色关联
+model ShotCharacter {
+  shotId       String
+  characterId  String
+  role         String?
+  shot         Shot       @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  character    Character  @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  @@id([shotId, characterId])
+}
+
+/// 集级合成产物
+model EpisodeAsset {
+  id          String   @id @default(cuid())
+  episodeId   String
+  type        String
+  url         String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+}
+
+// ============ 任务队列 ============
+
+model Job {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  status      String   @default("queued")
+  progress    Int      @default(0)
+  totalSteps  Int      @default(1)
+  doneSteps   Int      @default(0)
+  errorMessage String? @db.Text
+  resultData  Json?
+
+  seriesId    String?
+  episodeId   String?
+  shotId      String?
+
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps       JobStep[]
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model JobStep {
+  id          String   @id @default(cuid())
+  jobId       String
+  stepIndex   Int
+  type        String
+  status      String   @default("pending")
+  input       Json?
+  output      Json?
+  errorMessage String? @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, stepIndex])
+}
+
+// ============ 复用现有 ============
+
 model GenerationHistory {
   id        String          @id @default(cuid())
   userId    String
@@ -77,7 +329,6 @@ model GenerationHistory {
   createdAt DateTime        @default(now())
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags      TagOnHistory[]
-
   @@index([userId, createdAt])
 }
 
@@ -86,7 +337,6 @@ enum GenerationType {
   VIDEO
 }
 
-// ============ 标签（每用户独立，多对多关联历史） ============
 model Tag {
   id        String         @id @default(cuid())
   userId    String
@@ -94,7 +344,6 @@ model Tag {
   createdAt DateTime       @default(now())
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   history   TagOnHistory[]
-
   @@unique([userId, name])
 }
 
@@ -103,6 +352,5 @@ model TagOnHistory {
   tagId     String
   history   GenerationHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
   tag       Tag               @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
   @@id([historyId, tagId])
 }
