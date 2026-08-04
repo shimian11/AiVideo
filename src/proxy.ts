@@ -34,6 +34,11 @@ const PROTECTED = [
  */
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+  // 首页重定向到仪表盘。在 proxy 层用 req.url 构造，避免 standalone 部署下
+  // next/navigation 的 redirect() 生成 localhost 绝对 URL 导致浏览器跳到本机。
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
   // 判断是否命中受保护路径（精确匹配或前缀匹配）
   const isProtected = PROTECTED.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
