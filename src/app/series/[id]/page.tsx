@@ -11,6 +11,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { use } from "react";
+import { Card, CardLink } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /** 角色数据结构 */
 interface Character {
@@ -98,10 +101,10 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-zinc-400">加载中…</div>;
+    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-faint">加载中…</div>;
   }
   if (!series) {
-    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-red-500">剧集不存在</div>;
+    return <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-danger">剧集不存在</div>;
   }
 
   // 剧集状态码 -> 中文标签
@@ -123,34 +126,35 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 animate-fade-in">
       {/* 面包屑 */}
-      <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-indigo-600">
+      <Link href="/dashboard" className="text-sm text-faint transition hover:text-accent">
         ← 返回剧集列表
       </Link>
 
       {/* 标题区 */}
       <div className="mt-4 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{series.title}</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            <span className="rounded bg-indigo-50 px-2 py-0.5 text-indigo-600">{series.genre}</span>
-            <span className="ml-2">{statusLabel[series.status] || series.status}</span>
-            <span className="ml-2">计划 {series.targetCount} 集</span>
+          <h1 className="text-2xl font-bold text-ink">{series.title}</h1>
+          <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+            <Badge tone="accent">{series.genre}</Badge>
+            <span>{statusLabel[series.status] || series.status}</span>
+            <span>·</span>
+            <span>计划 {series.targetCount} 集</span>
           </p>
         </div>
       </div>
 
       {/* Tab 导航 */}
-      <div className="mt-6 flex gap-1 border-b border-zinc-200">
+      <div className="mt-6 flex gap-1 border-b border-line">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
               tab === t.key
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-700"
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-ink"
             }`}
           >
             {t.label}
@@ -161,9 +165,9 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
       {/* Tab 内容 */}
       <div className="mt-6">
         {tab === "overview" && (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-            <h3 className="text-sm font-semibold text-zinc-700">故事简介</h3>
-            <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
+          <div className="rounded-2xl border border-line bg-surface p-6">
+            <h3 className="text-sm font-semibold text-ink">故事简介</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
               {series.synopsis || "暂无简介"}
             </p>
             <div className="mt-6 grid grid-cols-3 gap-4">
@@ -225,27 +229,30 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
           <div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-zinc-700">剧本管理</h3>
-                <p className="mt-0.5 text-xs text-zinc-400">AI生成或手动创建剧本，然后拆分为分镜</p>
+                <h3 className="text-sm font-semibold text-ink">剧本管理</h3>
+                <p className="mt-0.5 text-xs text-faint">AI生成或手动创建剧本，然后拆分为分镜</p>
               </div>
-              <Link href={`/series/${id}/scripts`} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500">
+              <Link
+                href={`/series/${id}/scripts`}
+                className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
+              >
                 管理剧本 -&gt;
               </Link>
             </div>
             {series.scripts.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-400">
-                还没有剧本
+              <div className="mt-4">
+                <EmptyState title="还没有剧本" hint="前往剧本管理页创建或用 AI 生成" />
               </div>
             ) : (
               <div className="mt-4 grid gap-2">
                 {series.scripts.map((s) => (
-                  <div key={s.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+                  <Card key={s.id} className="px-4 py-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-zinc-900">{s.title}</span>
-                      <span className="text-xs text-zinc-400">v{s.version}</span>
+                      <span className="font-medium text-ink">{s.title}</span>
+                      <span className="text-xs text-faint">v{s.version}</span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-500">{s.content}</p>
-                  </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted">{s.content}</p>
+                  </Card>
                 ))}
               </div>
             )}
@@ -256,26 +263,26 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
           <div>
             {series.seasons.map((season) => (
               <div key={season.id} className="mb-6">
-                <h3 className="text-sm font-semibold text-zinc-700">
+                <h3 className="text-sm font-semibold text-ink">
                   {season.title || `第 ${season.number} 季`}
                 </h3>
                 {season.episodes.length === 0 ? (
-                  <p className="mt-2 text-sm text-zinc-400">暂无集数，将在剧本拆分后自动生成</p>
+                  <p className="mt-2 text-sm text-faint">暂无集数，将在剧本拆分后自动生成</p>
                 ) : (
                   <div className="mt-2 grid gap-2">
                     {season.episodes.map((ep) => (
                       <Link
                         key={ep.id}
                         href={`/episodes/${ep.id}`}
-                        className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3 hover:border-indigo-300"
+                        className="flex items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 transition-all duration-200 hover:border-accent/40"
                       >
                         <div>
-                          <span className="font-medium text-zinc-900">第 {ep.number} 集</span>
-                          {ep.title && <span className="ml-2 text-sm text-zinc-500">{ep.title}</span>}
+                          <span className="font-medium text-ink">第 {ep.number} 集</span>
+                          {ep.title && <span className="ml-2 text-sm text-muted">{ep.title}</span>}
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-zinc-400">
+                        <div className="flex items-center gap-3 text-xs text-faint">
                           <span>{ep.duration || 60}s</span>
-                          <span className="rounded-full bg-zinc-100 px-2 py-0.5">{ep.status}</span>
+                          <Badge>{ep.status}</Badge>
                         </div>
                       </Link>
                     ))}
@@ -295,10 +302,10 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
  */
 function StatCard({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <Link href={href} className="block rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-center hover:border-indigo-300">
-      <div className="text-2xl font-bold text-zinc-900">{value}</div>
-      <div className="mt-1 text-xs text-zinc-500">{label}</div>
-    </Link>
+    <CardLink href={href} className="p-4 text-center">
+      <div className="text-2xl font-bold text-ink">{value}</div>
+      <div className="mt-1 text-xs text-muted">{label}</div>
+    </CardLink>
   );
 }
 
@@ -324,35 +331,33 @@ function EntityList({
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-700">{title}</h3>
-          <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          <p className="mt-0.5 text-xs text-faint">{description}</p>
         </div>
         <Link
           href={createHref}
-          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500"
+          className="inline-flex items-center justify-center rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
         >
           + 新增
         </Link>
       </div>
       {items.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-400">
-          {emptyText}
+        <div className="mt-8">
+          <EmptyState title={emptyText} />
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <div key={item.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+            <Card key={item.id} className="p-4 transition-all duration-200 hover:border-accent/30">
               {item.imageUrl && (
                 <img src={item.imageUrl} alt={item.title} className="mb-3 h-32 w-full rounded-lg object-cover" />
               )}
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-zinc-900">{item.title}</h4>
-                {item.subtitle && (
-                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">{item.subtitle}</span>
-                )}
+                <h4 className="font-medium text-ink">{item.title}</h4>
+                {item.subtitle && <Badge>{item.subtitle}</Badge>}
               </div>
-              <p className="mt-1 line-clamp-2 text-sm text-zinc-500">{item.desc}</p>
-            </div>
+              <p className="mt-1 line-clamp-2 text-sm text-muted">{item.desc}</p>
+            </Card>
           ))}
         </div>
       )}

@@ -7,6 +7,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface JobItem {
   id: string;
@@ -35,12 +38,12 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "已取消",
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  queued: "bg-zinc-100 text-zinc-500",
-  running: "bg-blue-50 text-blue-600",
-  completed: "bg-green-50 text-green-600",
-  failed: "bg-red-50 text-red-600",
-  cancelled: "bg-zinc-100 text-zinc-400",
+const STATUS_TONE: Record<string, "default" | "accent" | "success" | "danger"> = {
+  queued: "default",
+  running: "accent",
+  completed: "success",
+  failed: "danger",
+  cancelled: "default",
 };
 
 export default function JobsPage() {
@@ -89,10 +92,13 @@ export default function JobsPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900">任务列表</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-ink">任务列表</h1>
+          <p className="mt-1 text-sm text-muted">查看生成任务的执行状态与进度</p>
+        </div>
         {hasRunning && (
-          <div className="flex items-center gap-2 text-sm text-blue-600">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+          <div className="flex items-center gap-2 text-sm text-accent">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-accent" />
             有任务运行中
           </div>
         )}
@@ -110,8 +116,8 @@ export default function JobsPage() {
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
-              filter === f.key ? "bg-indigo-600 text-white" : "text-zinc-500 hover:bg-zinc-100"
+            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+              filter === f.key ? "bg-accent text-white" : "text-muted hover:bg-surface-2"
             }`}
           >
             {f.label}
@@ -120,23 +126,23 @@ export default function JobsPage() {
       </div>
 
       {loading ? (
-        <p className="mt-8 text-sm text-zinc-400">加载中…</p>
+        <p className="mt-8 text-sm text-faint">加载中…</p>
       ) : filtered.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-400">
-          暂无任务
+        <div className="mt-8">
+          <EmptyState icon="📋" title="暂无任务" hint="生成剧集或分镜后，任务会显示在这里" />
         </div>
       ) : (
-        <div className="mt-4 grid gap-2">
+        <div className="mt-4 grid gap-2 animate-fade-in">
           {filtered.map((job) => (
-            <div key={job.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+            <Card key={job.id} className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-zinc-900">{TYPE_LABEL[job.type] || job.type}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLOR[job.status] || "bg-zinc-100"}`}>
+                  <span className="font-medium text-ink">{TYPE_LABEL[job.type] || job.type}</span>
+                  <Badge tone={STATUS_TONE[job.status] || "default"}>
                     {STATUS_LABEL[job.status] || job.status}
-                  </span>
+                  </Badge>
                 </div>
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-faint">
                   {new Date(job.createdAt).toLocaleString("zh-CN")}
                 </span>
               </div>
@@ -144,37 +150,37 @@ export default function JobsPage() {
               {/* 进度条 */}
               {job.status === "running" && (
                 <div className="mt-3 flex items-center gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                    <div className="h-full bg-indigo-600 transition-all" style={{ width: `${job.progress}%` }} />
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                    <div className="h-full bg-accent transition-all" style={{ width: `${job.progress}%` }} />
                   </div>
-                  <span className="text-xs text-zinc-500">{job.doneSteps}/{job.totalSteps}</span>
+                  <span className="text-xs text-muted">{job.doneSteps}/{job.totalSteps}</span>
                 </div>
               )}
 
               {/* 错误信息 */}
               {job.status === "failed" && job.errorMessage && (
-                <p className="mt-2 text-xs text-red-500">{job.errorMessage}</p>
+                <p className="mt-2 text-xs text-danger">{job.errorMessage}</p>
               )}
 
               {/* 操作按钮 */}
               <div className="mt-3 flex items-center gap-3">
                 {job.episodeId && (
-                  <Link href={`/episodes/${job.episodeId}`} className="text-xs text-indigo-600 hover:text-indigo-500">
-                    查看分镜 →
+                  <Link href={`/episodes/${job.episodeId}`} className="text-xs text-accent hover:text-accent-strong">
+                    查看分镜 -&gt;
                   </Link>
                 )}
                 {(job.status === "running" || job.status === "queued") && (
-                  <button onClick={() => cancelJob(job.id)} className="text-xs text-red-500 hover:text-red-400">
+                  <button onClick={() => cancelJob(job.id)} className="text-xs text-danger transition hover:text-danger/70">
                     取消
                   </button>
                 )}
                 {job.status === "failed" && (
-                  <button onClick={() => retryJob(job.id)} className="text-xs text-indigo-600 hover:text-indigo-500">
+                  <button onClick={() => retryJob(job.id)} className="text-xs text-accent transition hover:text-accent-strong">
                     重试
                   </button>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

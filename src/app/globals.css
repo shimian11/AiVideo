@@ -1,18 +1,142 @@
 @import "tailwindcss";
 
-:root {
-  --background: #fafafa;
-  --foreground: #18181b;
-}
+/* ============================================================
+   浅色科技风设计系统
+   - 浅色底 + 细网格 + 玻璃 + indigo 强调
+   - 克制圆角(12-16px)、细边框、微阴影
+   ============================================================ */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Microsoft YaHei",
+    system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* 设计 token */
+  --color-canvas: #fafafb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f6;
+  --color-ink: #18181b;
+  --color-muted: #52525b;
+  --color-faint: #a1a1aa;
+  --color-line: #e7e7ea;
+  --color-line-strong: #d4d4d8;
+  --color-accent: #6366f1;
+  --color-accent-strong: #4f46e5;
+  --color-accent-soft: #eef2ff;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+}
+
+:root {
+  --background: #fafafb;
+  --foreground: #18181b;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 细网格背景：科技感底纹，极淡 */
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(99, 102, 241, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.045) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* 玻璃毛玻璃：导航栏 / 浮层 */
+@utility glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+
+/* 强调渐变：点缀 / Logo */
+@utility accent-gradient {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ============================================================
+   动效
+   ============================================================ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility animate-scale-in {
+  animation: scale-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ============================================================
+   滚动条
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+  border: 2px solid var(--color-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* 选区 */
+::selection {
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--color-ink);
+}
+
+/* 无障碍：减少动效 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -9,7 +9,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { CardLink } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Dialog } from "@/components/ui/Dialog";
+import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 
 /** 剧集列表项的数据结构（与后端 GET /api/series 返回一致） */
 interface SeriesItem {
@@ -102,129 +107,114 @@ export default function DashboardPage() {
     archived: "已归档",
   };
 
+  // 剧集状态 -> Badge 色调映射
+  const statusTone: Record<string, "default" | "accent" | "success"> = {
+    planning: "default",
+    production: "accent",
+    completed: "success",
+    archived: "default",
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900">我的剧集</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
-        >
-          + 创建新剧集
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-ink">我的剧集</h1>
+          <p className="mt-1 text-sm text-muted">管理你的短剧项目，点击卡片进入详情</p>
+        </div>
+        <Button onClick={() => setShowCreate(true)}>+ 创建新剧集</Button>
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>
       )}
 
       {loading ? (
-        <div className="mt-8 text-center text-sm text-zinc-400">加载中…</div>
+        <div className="mt-8 text-center text-sm text-faint">加载中…</div>
       ) : items.length === 0 ? (
-        <div className="mt-16 text-center">
-          <div className="text-4xl">🎬</div>
-          <p className="mt-4 text-zinc-500">还没有剧集，点击上方按钮创建第一部短剧</p>
+        <div className="mt-16">
+          <EmptyState
+            icon="🎬"
+            title="还没有剧集"
+            hint="点击右上角按钮，创建你的第一部短剧"
+            action={
+              <Button onClick={() => setShowCreate(true)}>+ 创建新剧集</Button>
+            }
+          />
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
           {items.map((s) => (
-            <Link
-              key={s.id}
-              href={`/series/${s.id}`}
-              className="group block rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-indigo-300 hover:shadow-md"
-            >
+            <CardLink key={s.id} href={`/series/${s.id}`} className="p-5">
               <div className="flex items-start justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900 group-hover:text-indigo-600">
+                <h2 className="text-lg font-semibold text-ink group-hover:text-accent">
                   {s.title}
                 </h2>
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
+                <Badge tone={statusTone[s.status] || "default"}>
                   {statusLabel[s.status] || s.status}
-                </span>
+                </Badge>
               </div>
-              <p className="mt-2 line-clamp-2 text-sm text-zinc-500">
+              <p className="mt-2 line-clamp-2 text-sm text-muted">
                 {s.synopsis || "暂无简介"}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-400">
-                <span className="rounded bg-indigo-50 px-2 py-0.5 text-indigo-600">{s.genre}</span>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-faint">
+                <Badge tone="accent">{s.genre}</Badge>
                 <span>{s._count.seasons} 季</span>
                 <span>{s._count.characters} 角色</span>
                 <span>{s._count.locations} 场景</span>
                 <span>计划 {s.targetCount} 集</span>
               </div>
-            </Link>
+            </CardLink>
           ))}
         </div>
       )}
 
-      {/* 创建剧集弹窗：点击遮罩关闭，点击弹窗内容阻止冒泡 */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowCreate(false)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-zinc-900">创建新剧集</h2>
-            <div className="mt-4 flex flex-col gap-3">
-              <div>
-                <label className="text-sm font-medium text-zinc-700">标题</label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="例如：都市逆袭之重生2026"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700">简介</label>
-                <textarea
-                  value={synopsis}
-                  onChange={(e) => setSynopsis(e.target.value)}
-                  rows={3}
-                  placeholder="一句话描述故事核心…"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium text-zinc-700">题材</label>
-                  <select
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-                  >
-                    {GENRES.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-zinc-700">计划集数</label>
-                  <input
-                    type="number"
-                    value={targetCount}
-                    onChange={(e) => setTargetCount(Number(e.target.value))}
-                    min={1}
-                    max={200}
-                    className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
-              >
-                取消
-              </button>
-              <button
-                onClick={create}
-                disabled={creating}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-              >
-                {creating ? "创建中…" : "创建"}
-              </button>
-            </div>
+      {/* 创建剧集弹窗 */}
+      <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="创建新剧集" maxWidth="max-w-md">
+        <div className="flex flex-col gap-3">
+          <Field label="标题" required>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="例如：都市逆袭之重生2026"
+            />
+          </Field>
+          <Field label="简介">
+            <Textarea
+              value={synopsis}
+              onChange={(e) => setSynopsis(e.target.value)}
+              rows={3}
+              placeholder="一句话描述故事核心…"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="题材">
+              <Select value={genre} onChange={(e) => setGenre(e.target.value)}>
+                {GENRES.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="计划集数">
+              <Input
+                type="number"
+                value={targetCount}
+                onChange={(e) => setTargetCount(Number(e.target.value))}
+                min={1}
+                max={200}
+              />
+            </Field>
           </div>
         </div>
-      )}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowCreate(false)}>
+            取消
+          </Button>
+          <Button onClick={create} disabled={creating}>
+            {creating ? "创建中…" : "创建"}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

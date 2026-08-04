@@ -14,6 +14,10 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { use } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input, Textarea, Select } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /** 角色数据结构（分镜关联用） */
 interface Character {
@@ -67,14 +71,14 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "失败",
 };
 
-/** 分镜状态码 -> 标签背景色 */
-const STATUS_COLOR: Record<string, string> = {
-  pending: "bg-zinc-100 text-zinc-500",
-  keyframe_done: "bg-blue-50 text-blue-600",
-  video_done: "bg-indigo-50 text-indigo-600",
-  audio_done: "bg-purple-50 text-purple-600",
-  completed: "bg-green-50 text-green-600",
-  failed: "bg-red-50 text-red-600",
+/** 分镜状态码 -> Badge 色调 */
+const STATUS_TONE: Record<string, "default" | "accent" | "success" | "danger" | "warning"> = {
+  pending: "default",
+  keyframe_done: "accent",
+  video_done: "accent",
+  audio_done: "warning",
+  completed: "success",
+  failed: "danger",
 };
 
 /**
@@ -237,8 +241,8 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
     }
   }
 
-  if (loading) return <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-zinc-400">加载中…</div>;
-  if (!episode) return <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-red-500">集不存在</div>;
+  if (loading) return <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-faint">加载中…</div>;
+  if (!episode) return <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-danger">集不存在</div>;
 
   const seriesId = episode.season.series.id;
   // 统计分镜总数与已完成数，用于概览栏展示进度
@@ -248,10 +252,10 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto max-w-7xl px-4 py-6 animate-fade-in">
       {/* 面包屑 */}
-      <div className="flex items-center gap-2 text-sm text-zinc-400">
-        <Link href={`/series/${seriesId}`} className="hover:text-indigo-600">{episode.season.series.title}</Link>
+      <div className="flex items-center gap-2 text-sm text-faint">
+        <Link href={`/series/${seriesId}`} className="transition hover:text-accent">{episode.season.series.title}</Link>
         <span>/</span>
         <span>第 {episode.number} 集{episode.title ? ` · ${episode.title}` : ""}</span>
       </div>
@@ -259,16 +263,19 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
       {/* 概览栏：集号、状态、完成进度 */}
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-zinc-900">第 {episode.number} 集</h1>
-          <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLOR[episode.status] || "bg-zinc-100"}`}>
+          <h1 className="text-xl font-bold text-ink">第 {episode.number} 集</h1>
+          <Badge tone={STATUS_TONE[episode.status] || "default"}>
             {STATUS_LABEL[episode.status] || episode.status}
-          </span>
+          </Badge>
         </div>
-        <div className="text-sm text-zinc-500">
-          {completedShots}/{totalShots} 分镜完成
-          <span className="ml-2">·</span>
-          <span className="ml-2">{episode.scenes.length} 场</span>
-          <Link href={`/episodes/${episodeId}/preview`} className="ml-4 rounded-lg border border-indigo-600 px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50">
+        <div className="flex items-center text-sm text-muted">
+          <span>{completedShots}/{totalShots} 分镜完成</span>
+          <span className="mx-2">·</span>
+          <span>{episode.scenes.length} 场</span>
+          <Link
+            href={`/episodes/${episodeId}/preview`}
+            className="ml-4 inline-flex items-center justify-center rounded-lg border border-accent px-3 py-1 text-xs font-medium text-accent transition hover:bg-accent-soft"
+          >
             ▶ 预览整集
           </Link>
         </div>
@@ -276,20 +283,16 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
 
       {/* 批量生成工具栏 */}
       {totalShots > 0 && (
-        <div className="mt-4 flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-3">
-          <button
-            onClick={generateAll}
-            disabled={generating}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
-          >
+        <div className="mt-4 flex items-center gap-4 rounded-xl border border-line bg-surface p-3">
+          <Button onClick={generateAll} disabled={generating}>
             {generating ? "生成中…" : "🚀 一键生成全部分镜"}
-          </button>
+          </Button>
           {jobProgress && (
             <div className="flex flex-1 items-center gap-2">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100">
-                <div className="h-full bg-indigo-600 transition-all" style={{ width: `${jobProgress.progress}%` }} />
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
+                <div className="h-full bg-accent transition-all" style={{ width: `${jobProgress.progress}%` }} />
               </div>
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-muted">
                 {jobProgress.doneSteps}/{jobProgress.totalSteps} ({jobProgress.progress}%)
               </span>
             </div>
@@ -299,53 +302,61 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
 
       {totalShots === 0 ? (
         // 无分镜时的空态引导
-        <div className="mt-12 rounded-xl border border-dashed border-zinc-200 py-16 text-center">
-          <div className="text-3xl">🎬</div>
-          <p className="mt-4 text-zinc-500">本集还没有分镜</p>
-          <Link href={`/series/${seriesId}/scripts`} className="mt-3 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
-            去剧本页拆分分镜
-          </Link>
+        <div className="mt-12">
+          <EmptyState
+            icon="🎬"
+            title="本集还没有分镜"
+            hint="前往剧本页将剧本拆分为分镜"
+            action={
+              <Link
+                href={`/series/${seriesId}/scripts`}
+                className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
+              >
+                去剧本页拆分分镜
+              </Link>
+            }
+          />
         </div>
       ) : (
         // 三栏布局：分镜列表 / 分镜编辑 / 生成预览
         <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_minmax(0,1fr)]">
           {/* 左：分镜列表（按场景分组） */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-3" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
+          <div className="rounded-2xl border border-line bg-surface p-3" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
             {episode.scenes.map((scene) => (
               <div key={scene.id} className="mb-4">
                 <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className="text-xs font-semibold text-zinc-400">第{scene.number}场</span>
-                  {scene.location && <span className="text-xs text-zinc-400">· {scene.location.name}</span>}
+                  <span className="text-xs font-semibold text-faint">第{scene.number}场</span>
+                  {scene.location && <span className="text-xs text-faint">· {scene.location.name}</span>}
                 </div>
                 {scene.shots.map((shot) => (
                   <button
                     key={shot.id}
                     onClick={() => selectShot(shot)}
                     className={`mb-1 flex w-full items-center gap-2 rounded-lg p-2 text-left transition ${
-                      selectedShot?.id === shot.id ? "bg-indigo-50 ring-1 ring-indigo-200" : "hover:bg-zinc-50"
+                      selectedShot?.id === shot.id ? "bg-accent-soft ring-1 ring-accent/20" : "hover:bg-surface-2"
                     }`}
                   >
                     {/* 缩略图：有关键帧显示图片，否则显示编号占位 */}
-                    <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+                    <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded border border-line bg-surface-2">
                       {shot.keyframeUrl ? (
                         <img src={shot.keyframeUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-zinc-300">#{shot.number}</div>
+                        <div className="flex h-full items-center justify-center text-xs text-faint">#{shot.number}</div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-medium text-zinc-700">#{shot.number}</span>
-                        <span className="text-xs text-zinc-400">{shot.shotType}</span>
-                        <span className="text-xs text-zinc-400">· {shot.duration}s</span>
+                        <span className="text-xs font-medium text-ink">#{shot.number}</span>
+                        <span className="text-xs text-faint">{shot.shotType}</span>
+                        <span className="text-xs text-faint">· {shot.duration}s</span>
                       </div>
-                      <p className="truncate text-xs text-zinc-400">{shot.dialogue || shot.imagePrompt?.slice(0, 30) || "无描述"}</p>
+                      <p className="truncate text-xs text-faint">{shot.dialogue || shot.imagePrompt?.slice(0, 30) || "无描述"}</p>
                     </div>
                     {/* 状态指示点 */}
                     <span className={`h-2 w-2 flex-shrink-0 rounded-full ${
-                      shot.status === "completed" ? "bg-green-500" :
-                      shot.status === "failed" ? "bg-red-500" :
-                      shot.status === "pending" ? "bg-zinc-300" : "bg-indigo-500"
+                      shot.status === "completed" ? "bg-success" :
+                      shot.status === "failed" ? "bg-danger" :
+                      shot.status === "pending" ? "bg-faint" : "bg-accent"
                     }`} />
                   </button>
                 ))}
@@ -354,23 +365,23 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* 中：分镜详情查看 / 编辑 */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
+          <div className="rounded-2xl border border-line bg-surface p-5" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
             {!selectedShot ? (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+              <div className="flex h-full items-center justify-center text-sm text-faint">
                 ← 点击左侧选择一个分镜
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-zinc-900">分镜 #{selectedShot.number}</h3>
+                  <h3 className="font-semibold text-ink">分镜 #{selectedShot.number}</h3>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLOR[selectedShot.status] || "bg-zinc-100"}`}>
+                    <Badge tone={STATUS_TONE[selectedShot.status] || "default"}>
                       {STATUS_LABEL[selectedShot.status] || selectedShot.status}
-                    </span>
+                    </Badge>
                     {!editing ? (
-                      <button onClick={() => setEditing(true)} className="text-xs font-medium text-indigo-600 hover:text-indigo-500">编辑</button>
+                      <button onClick={() => setEditing(true)} className="text-xs font-medium text-accent transition hover:text-accent-strong">编辑</button>
                     ) : (
-                      <button onClick={() => setEditing(false)} className="text-xs text-zinc-400">取消</button>
+                      <button onClick={() => setEditing(false)} className="text-xs text-faint transition hover:text-muted">取消</button>
                     )}
                   </div>
                 </div>
@@ -379,9 +390,9 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
                 {selectedShot.characters.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {selectedShot.characters.map((sc) => (
-                      <span key={sc.character.id} className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600">
+                      <Badge key={sc.character.id} tone="accent">
                         {sc.character.name}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -390,20 +401,20 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
                   // 查看模式：只读展示分镜字段
                   <>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">景别 / 时长</label>
-                      <p className="mt-0.5 text-sm text-zinc-700">{selectedShot.shotType} · {selectedShot.duration}秒</p>
+                      <label className="text-xs font-medium text-faint">景别 / 时长</label>
+                      <p className="mt-0.5 text-sm text-ink">{selectedShot.shotType} · {selectedShot.duration}秒</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">文生图提示词</label>
-                      <p className="mt-0.5 text-sm text-zinc-600">{selectedShot.imagePrompt || "（空）"}</p>
+                      <label className="text-xs font-medium text-faint">文生图提示词</label>
+                      <p className="mt-0.5 text-sm text-muted">{selectedShot.imagePrompt || "（空）"}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">图生视频提示词</label>
-                      <p className="mt-0.5 text-sm text-zinc-600">{selectedShot.videoPrompt || "（空）"}</p>
+                      <label className="text-xs font-medium text-faint">图生视频提示词</label>
+                      <p className="mt-0.5 text-sm text-muted">{selectedShot.videoPrompt || "（空）"}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">台词/旁白</label>
-                      <p className="mt-0.5 text-sm text-zinc-600">{selectedShot.dialogue || "（无）"}</p>
+                      <label className="text-xs font-medium text-faint">台词/旁白</label>
+                      <p className="mt-0.5 text-sm text-muted">{selectedShot.dialogue || "（无）"}</p>
                     </div>
                   </>
                 ) : (
@@ -411,37 +422,31 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-zinc-400">景别</label>
-                        <select value={editShotType} onChange={(e) => setEditShotType(e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm">
+                        <label className="text-xs font-medium text-faint">景别</label>
+                        <Select value={editShotType} onChange={(e) => setEditShotType(e.target.value)} className="mt-1">
                           {["远景", "全景", "中景", "近景", "特写", "大特写"].map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-zinc-400">时长（秒）</label>
-                        <input type="number" value={editDuration} onChange={(e) => setEditDuration(Number(e.target.value))} min={3} max={10}
-                          className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm" />
+                        <label className="text-xs font-medium text-faint">时长（秒）</label>
+                        <Input type="number" value={editDuration} onChange={(e) => setEditDuration(Number(e.target.value))} min={3} max={10} className="mt-1" />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">文生图提示词（静态画面）</label>
-                      <textarea value={editImagePrompt} onChange={(e) => setEditImagePrompt(e.target.value)} rows={4}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm resize-y" />
+                      <label className="text-xs font-medium text-faint">文生图提示词（静态画面）</label>
+                      <Textarea value={editImagePrompt} onChange={(e) => setEditImagePrompt(e.target.value)} rows={4} className="mt-1" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">图生视频提示词（动态描述）</label>
-                      <textarea value={editVideoPrompt} onChange={(e) => setEditVideoPrompt(e.target.value)} rows={3}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm resize-y" />
+                      <label className="text-xs font-medium text-faint">图生视频提示词（动态描述）</label>
+                      <Textarea value={editVideoPrompt} onChange={(e) => setEditVideoPrompt(e.target.value)} rows={3} className="mt-1" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-zinc-400">台词/旁白</label>
-                      <textarea value={editDialogue} onChange={(e) => setEditDialogue(e.target.value)} rows={2}
-                        className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm resize-y" />
+                      <label className="text-xs font-medium text-faint">台词/旁白</label>
+                      <Textarea value={editDialogue} onChange={(e) => setEditDialogue(e.target.value)} rows={2} className="mt-1" />
                     </div>
-                    <button onClick={saveShot} disabled={saving}
-                      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+                    <Button onClick={saveShot} disabled={saving}>
                       {saving ? "保存中…" : "保存"}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -449,33 +454,33 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* 右：生成结果预览（关键帧 + 视频） */}
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
+          <div className="rounded-2xl border border-line bg-surface p-5" style={{ maxHeight: "calc(100vh - 140px)", overflowY: "auto" }}>
             {!selectedShot ? (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">选择分镜查看预览</div>
+              <div className="flex h-full items-center justify-center text-sm text-faint">选择分镜查看预览</div>
             ) : (
               <div className="flex flex-col gap-4">
-                <h3 className="font-semibold text-zinc-900">生成结果</h3>
+                <h3 className="font-semibold text-ink">生成结果</h3>
 
                 {/* 关键帧预览（竖屏 9:16） */}
                 <div>
-                  <label className="text-xs font-medium text-zinc-400">关键帧</label>
-                  <div className="mt-1 aspect-[9/16] max-w-[200px] overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50">
+                  <label className="text-xs font-medium text-faint">关键帧</label>
+                  <div className="mt-1 aspect-[9/16] max-w-[200px] overflow-hidden rounded-lg border border-line bg-surface-2">
                     {selectedShot.keyframeUrl ? (
                       <img src={selectedShot.keyframeUrl} alt="关键帧" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-zinc-300">未生成</div>
+                      <div className="flex h-full items-center justify-center text-sm text-faint">未生成</div>
                     )}
                   </div>
                 </div>
 
                 {/* 视频片段预览 */}
                 <div>
-                  <label className="text-xs font-medium text-zinc-400">视频片段</label>
+                  <label className="text-xs font-medium text-faint">视频片段</label>
                   <div className="mt-1">
                     {selectedShot.videoUrl ? (
-                      <video src={selectedShot.videoUrl} controls loop className="max-w-full rounded-lg border border-zinc-200" />
+                      <video src={selectedShot.videoUrl} controls loop className="max-w-full rounded-lg border border-line" />
                     ) : (
-                      <div className="rounded-lg border border-dashed border-zinc-200 py-8 text-center text-sm text-zinc-300">未生成</div>
+                      <div className="rounded-lg border border-dashed border-line py-8 text-center text-sm text-faint">未生成</div>
                     )}
                   </div>
                 </div>
@@ -485,7 +490,7 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
                   <button
                     onClick={() => regenerateShot(selectedShot.id)}
                     disabled={regenerating}
-                    className="rounded-lg border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 disabled:opacity-50"
+                    className="rounded-lg border border-accent px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent-soft disabled:opacity-50"
                   >
                     {regenerating ? "生成中…" : "🔄 重新生成本分镜"}
                   </button>

@@ -6,7 +6,7 @@
  * 2. 手动创建：手动输入剧本标题与内容
  * 3. AI 生成：输入故事大纲，调用 AI 自动创作剧本
  *
- * 本页是「剧本 → 分镜」工作流的核心入口。
+ * 本页是「剧本 -> 分镜」工作流的核心入口。
  */
 
 "use client";
@@ -15,6 +15,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input, Textarea, Select, Field } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /** 剧本列表项数据结构 */
 interface ScriptItem {
@@ -158,19 +163,19 @@ export default function ScriptsPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <Link href={`/series/${seriesId}`} className="text-sm text-zinc-400 hover:text-indigo-600">
+    <div className="mx-auto max-w-4xl px-4 py-8 animate-fade-in">
+      <Link href={`/series/${seriesId}`} className="text-sm text-faint transition hover:text-accent">
         ← 返回剧集
       </Link>
-      <h1 className="mt-4 text-2xl font-bold text-zinc-900">剧本管理</h1>
+      <h1 className="mt-4 text-2xl font-bold text-ink">剧本管理</h1>
 
-      {error && <div className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
 
       {/* Tab 切换：列表 / 手动创建 / AI生成 */}
-      <div className="mt-6 flex gap-1 border-b border-zinc-200">
+      <div className="mt-6 flex gap-1 border-b border-line">
         {[{ k: "list" as const, l: "剧本列表" }, { k: "manual" as const, l: "手动创建" }, { k: "ai" as const, l: "AI生成" }].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k)}
-            className={`border-b-2 px-4 py-2 text-sm font-medium ${tab === t.k ? "border-indigo-600 text-indigo-600" : "border-transparent text-zinc-500"}`}>
+            className={`border-b-2 px-4 py-2 text-sm font-medium transition ${tab === t.k ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
             {t.l}
           </button>
         ))}
@@ -181,46 +186,42 @@ export default function ScriptsPage({ params }: { params: Promise<{ id: string }
         {tab === "list" && (
           <div>
             {loading ? (
-              <p className="text-sm text-zinc-400">加载中…</p>
+              <p className="text-sm text-faint">加载中…</p>
             ) : scripts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-200 py-12 text-center text-sm text-zinc-400">
-                还没有剧本，点击"手动创建"或"AI生成"
-              </div>
+              <EmptyState title="还没有剧本" hint="点击「手动创建」或「AI生成」" />
             ) : (
               <div className="grid gap-3">
                 {scripts.map((s) => (
-                  <div key={s.id} className="rounded-xl border border-zinc-200 bg-white p-4">
+                  <Card key={s.id} className="p-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-zinc-900">{s.title}</h3>
-                      <div className="flex items-center gap-2 text-xs text-zinc-400">
-                        {s.source === "ai_generated" && <span className="rounded bg-indigo-50 px-2 py-0.5 text-indigo-600">AI生成</span>}
+                      <h3 className="font-medium text-ink">{s.title}</h3>
+                      <div className="flex items-center gap-2 text-xs text-faint">
+                        {s.source === "ai_generated" && <Badge tone="accent">AI生成</Badge>}
                         <span>v{s.version}</span>
                         <span>{s._count.episodes} 集已拆分</span>
                       </div>
                     </div>
-                    <p className="mt-2 line-clamp-3 text-sm text-zinc-500">{s.content}</p>
-                  </div>
+                    <p className="mt-2 line-clamp-3 text-sm text-muted">{s.content}</p>
+                  </Card>
                 ))}
               </div>
             )}
 
             {/* 拆分面板：选择剧本后调用 AI 拆分为分镜 */}
             {scripts.length > 0 && (
-              <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                <h3 className="text-sm font-semibold text-zinc-700">拆分剧本为分镜</h3>
-                <p className="mt-1 text-xs text-zinc-400">AI将剧本自动拆分为集-&gt;场-&gt;分镜，生成每个分镜的提示词</p>
+              <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-5">
+                <h3 className="text-sm font-semibold text-ink">拆分剧本为分镜</h3>
+                <p className="mt-1 text-xs text-faint">AI将剧本自动拆分为集-&gt;场-&gt;分镜，生成每个分镜的提示词</p>
                 <div className="mt-3 flex gap-2">
-                  <select value={splitScriptId} onChange={(e) => setSplitScriptId(e.target.value)}
-                    className="flex-1 rounded-lg border border-zinc-300 p-2 text-sm">
+                  <Select value={splitScriptId} onChange={(e) => setSplitScriptId(e.target.value)} className="flex-1">
                     <option value="">选择剧本…</option>
                     {scripts.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-                  </select>
-                  <button onClick={splitScript} disabled={splitting || !splitScriptId}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+                  </Select>
+                  <Button onClick={splitScript} disabled={splitting || !splitScriptId}>
                     {splitting ? "拆分中…（可能需要1-2分钟）" : "AI拆分"}
-                  </button>
+                  </Button>
                 </div>
-                {splitResult && <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{splitResult}</div>}
+                {splitResult && <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-success">{splitResult}</div>}
               </div>
             )}
           </div>
@@ -228,66 +229,56 @@ export default function ScriptsPage({ params }: { params: Promise<{ id: string }
 
         {/* 手动创建表单 */}
         {tab === "manual" && (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <Card className="p-6">
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700">剧本标题</label>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例如：第一季完整剧本"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700">剧本内容</label>
-                <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={15}
-                  placeholder="输入完整剧本内容…"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500 resize-y" />
-              </div>
+              <Field label="剧本标题">
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例如：第一季完整剧本" />
+              </Field>
+              <Field label="剧本内容">
+                <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={15}
+                  placeholder="输入完整剧本内容…" />
+              </Field>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setTab("list")} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-600">取消</button>
-                <button onClick={createManual} disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+                <Button variant="outline" onClick={() => setTab("list")}>取消</Button>
+                <Button onClick={createManual} disabled={saving}>
                   {saving ? "保存中…" : "保存"}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* AI 生成表单 */}
         {tab === "ai" && (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+          <Card className="p-6">
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-700">故事大纲 / 主题描述</label>
-                <p className="mt-0.5 text-xs text-zinc-400">描述故事的核心设定、主线剧情、人物关系等</p>
-                <textarea value={outline} onChange={(e) => setOutline(e.target.value)} rows={6}
-                  placeholder="例如：一个普通外卖员意外获得读心术超能力，从此人生开挂。他在送外卖过程中读到各种客户的秘密，利用这些信息一步步逆袭，最终成为商业巨头。但超能力也让他卷入了一场阴谋…"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500 resize-y" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700">集数</label>
-                <input type="number" value={episodeCount} onChange={(e) => setEpisodeCount(Number(e.target.value))} min={1} max={100}
-                  className="mt-1 w-32 rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500" />
-              </div>
-              <button onClick={generateAI} disabled={generating}
-                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+              <Field label="故事大纲 / 主题描述" hint="描述故事的核心设定、主线剧情、人物关系等">
+                <Textarea value={outline} onChange={(e) => setOutline(e.target.value)} rows={6}
+                  placeholder="例如：一个普通外卖员意外获得读心术超能力，从此人生开挂。他在送外卖过程中读到各种客户的秘密，利用这些信息一步步逆袭，最终成为商业巨头。但超能力也让他卷入了一场阴谋…" />
+              </Field>
+              <Field label="集数">
+                <Input type="number" value={episodeCount} onChange={(e) => setEpisodeCount(Number(e.target.value))} min={1} max={100} className="w-32" />
+              </Field>
+              <Button onClick={generateAI} disabled={generating}>
                 {generating ? "AI创作中…（可能需要1-2分钟）" : "✨ AI生成剧本"}
-              </button>
+              </Button>
               {/* 生成结果展示，并提供快捷跳转至拆分 */}
               {genResult && (
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+                <div className="rounded-lg border border-line bg-surface-2 p-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-zinc-700">生成结果</h4>
+                    <h4 className="text-sm font-semibold text-ink">生成结果</h4>
                     {genScriptId && (
                       <button onClick={() => { setSplitScriptId(genScriptId); setTab("list"); }}
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                        className="text-xs font-medium text-accent transition hover:text-accent-strong">
                         去拆分此剧本 -&gt;
                       </button>
                     )}
                   </div>
-                  <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap text-sm text-zinc-600">{genResult}</pre>
+                  <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap text-sm text-muted">{genResult}</pre>
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>

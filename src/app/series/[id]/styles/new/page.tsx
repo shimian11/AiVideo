@@ -11,6 +11,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 
 /** 画风预设选项，可点击快捷填入 */
 const ART_STYLES = [
@@ -71,68 +74,57 @@ export default function NewStylePage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <button onClick={() => router.back()} className="text-sm text-zinc-400 hover:text-indigo-600">← 返回</button>
-      <h1 className="mt-4 text-2xl font-bold text-zinc-900">创建风格设定</h1>
-      <p className="mt-1 text-sm text-zinc-500">定义画风、色调和镜头语言，全局应用到所有分镜</p>
+    <div className="mx-auto max-w-2xl px-4 py-8 animate-fade-in">
+      <Button variant="ghost" size="sm" onClick={() => router.back()}>← 返回</Button>
+      <h1 className="mt-4 text-2xl font-bold text-ink">创建风格设定</h1>
+      <p className="mt-1 text-sm text-muted">定义画风、色调和镜头语言，全局应用到所有分镜</p>
 
-      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6">
-        <div>
-          <label className="text-sm font-medium text-zinc-700">风格名 <span className="text-red-500">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：电影感写实"
-            className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
-        </div>
+      <Card className="mt-6 flex flex-col gap-4 p-6">
+        <Field label="风格名" required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：电影感写实" />
+        </Field>
 
-        <div>
-          <label className="text-sm font-medium text-zinc-700">画风描述 <span className="text-red-500">*</span></label>
-          <p className="mt-0.5 text-xs text-zinc-400">可从预设选择或自行编辑，将注入每个分镜的生图提示词</p>
-          <textarea value={artStyle} onChange={(e) => setArtStyle(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-y" />
+        <Field label="画风描述" required hint="可从预设选择或自行编辑，将注入每个分镜的生图提示词">
+          <Textarea value={artStyle} onChange={(e) => setArtStyle(e.target.value)} rows={2} />
           {/* 画风快捷预设按钮 */}
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-wrap gap-1">
             {ART_STYLES.map((s) => (
               <button key={s} onClick={() => setArtStyle(s)}
-                className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 hover:bg-indigo-50 hover:text-indigo-600">
+                className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted transition hover:bg-accent-soft hover:text-accent-strong">
                 {s.split("，")[0]}
               </button>
             ))}
           </div>
-        </div>
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium text-zinc-700">色调</label>
-            <select value={colorPalette} onChange={(e) => setColorPalette(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500">
+          <Field label="色调">
+            <Select value={colorPalette} onChange={(e) => setColorPalette(e.target.value)}>
               <option value="">请选择</option>
               {PALETTES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-zinc-700">镜头语言</label>
-            <select value={cameraStyle} onChange={(e) => setCameraStyle(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500">
+            </Select>
+          </Field>
+          <Field label="镜头语言">
+            <Select value={cameraStyle} onChange={(e) => setCameraStyle(e.target.value)}>
               <option value="">请选择</option>
               {CAMERA_STYLES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-zinc-700">全局负面提示词</label>
-          <p className="mt-0.5 text-xs text-zinc-400">所有分镜生成都会附加这些排除词</p>
-          <textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} rows={2}
-            className="mt-1 w-full rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-y" />
-        </div>
+        <Field label="全局负面提示词" hint="所有分镜生成都会附加这些排除词">
+          <Textarea value={negativePrompt} onChange={(e) => setNegativePrompt(e.target.value)} rows={2} />
+        </Field>
 
-        {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>}
 
         <div className="flex justify-end gap-2">
-          <button onClick={() => router.back()} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50">取消</button>
-          <button onClick={save} disabled={saving} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
+          <Button variant="outline" onClick={() => router.back()}>取消</Button>
+          <Button onClick={save} disabled={saving}>
             {saving ? "保存中…" : "保存"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

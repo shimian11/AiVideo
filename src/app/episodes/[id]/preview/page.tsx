@@ -10,6 +10,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { use } from "react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /** 分镜数据（预览用） */
 interface PreviewShot {
@@ -43,7 +44,7 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
       const data = await res.json();
       setEpisodeInfo(data);
 
-      // 按场→分镜顺序展平
+      // 按场->分镜顺序展平
       const allShots = data.scenes.flatMap((s: any) =>
         s.shots.map((sh: any) => ({ ...sh, scene: { number: s.number, location: s.location } })),
       );
@@ -75,8 +76,8 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
     a.remove();
   }
 
-  if (loading) return <div className="mx-auto max-w-4xl px-4 py-8 text-sm text-zinc-400">加载中…</div>;
-  if (!episodeInfo) return <div className="mx-auto max-w-4xl px-4 py-8 text-sm text-red-500">集不存在</div>;
+  if (loading) return <div className="mx-auto max-w-4xl px-4 py-8 text-sm text-faint">加载中…</div>;
+  if (!episodeInfo) return <div className="mx-auto max-w-4xl px-4 py-8 text-sm text-danger">集不存在</div>;
 
   const seriesId = episodeInfo.season.series.id;
   const currentShot = shots[currentIdx];
@@ -84,33 +85,33 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
   const completedCount = shots.filter((s) => s.status === "completed" || s.videoUrl).length;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
+    <div className="mx-auto max-w-4xl px-4 py-6 animate-fade-in">
       {/* 面包屑 */}
-      <div className="flex items-center gap-2 text-sm text-zinc-400">
-        <Link href={`/series/${seriesId}`} className="hover:text-indigo-600">{episodeInfo.season.series.title}</Link>
+      <div className="flex items-center gap-2 text-sm text-faint">
+        <Link href={`/series/${seriesId}`} className="transition hover:text-accent">{episodeInfo.season.series.title}</Link>
         <span>/</span>
-        <Link href={`/episodes/${episodeId}`} className="hover:text-indigo-600">第 {episodeInfo.number} 集</Link>
+        <Link href={`/episodes/${episodeId}`} className="transition hover:text-accent">第 {episodeInfo.number} 集</Link>
         <span>/</span>
         <span>预览</span>
       </div>
 
-      <h1 className="mt-3 text-xl font-bold text-zinc-900">
+      <h1 className="mt-3 text-xl font-bold text-ink">
         第 {episodeInfo.number} 集 · 整集预览
-        {episodeInfo.title && <span className="ml-2 text-zinc-500">{episodeInfo.title}</span>}
+        {episodeInfo.title && <span className="ml-2 text-muted">{episodeInfo.title}</span>}
       </h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <p className="mt-1 text-sm text-muted">
         共 {shots.length} 个分镜，{completedCount} 个已生成视频
       </p>
 
       {shots.length === 0 ? (
-        <div className="mt-12 rounded-xl border border-dashed border-zinc-200 py-16 text-center text-zinc-400">
-          暂无分镜数据
+        <div className="mt-12">
+          <EmptyState title="暂无分镜数据" />
         </div>
       ) : (
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           {/* 播放器 */}
           <div className="flex flex-col gap-3">
-            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-black" style={{ aspectRatio: "9/16", maxHeight: "70vh" }}>
+            <div className="overflow-hidden rounded-xl border border-line bg-black" style={{ aspectRatio: "9/16", maxHeight: "70vh" }}>
               {currentShot?.videoUrl ? (
                 <video
                   ref={videoRef}
@@ -124,7 +125,7 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
               ) : currentShot?.keyframeUrl ? (
                 <img src={currentShot.keyframeUrl} alt="预览" className="h-full w-full object-contain" />
               ) : (
-                <div className="flex h-full items-center justify-center text-zinc-500">
+                <div className="flex h-full items-center justify-center text-muted">
                   分镜 #{currentShot?.number} 未生成
                 </div>
               )}
@@ -132,20 +133,20 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
 
             {/* 当前分镜信息 */}
             {currentShot && (
-              <div className="rounded-lg bg-white p-3 text-sm">
+              <div className="rounded-xl border border-line bg-surface p-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-zinc-900">分镜 #{currentShot.number}</span>
-                  <span className="text-xs text-zinc-400">{currentShot.shotType}</span>
-                  <span className="text-xs text-zinc-400">· 第{currentShot.scene.number}场</span>
-                  {currentShot.scene.location && <span className="text-xs text-zinc-400">· {currentShot.scene.location.name}</span>}
+                  <span className="font-medium text-ink">分镜 #{currentShot.number}</span>
+                  <span className="text-xs text-faint">{currentShot.shotType}</span>
+                  <span className="text-xs text-faint">· 第{currentShot.scene.number}场</span>
+                  {currentShot.scene.location && <span className="text-xs text-faint">· {currentShot.scene.location.name}</span>}
                 </div>
                 {currentShot.dialogue && (
-                  <p className="mt-1 text-zinc-600">💬 {currentShot.dialogue}</p>
+                  <p className="mt-1 text-muted">💬 {currentShot.dialogue}</p>
                 )}
                 {currentShot.videoUrl && (
                   <button
                     onClick={() => downloadShot(currentShot.videoUrl!, `第${episodeInfo.number}集-分镜${currentShot.number}`)}
-                    className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-500"
+                    className="mt-2 text-xs font-medium text-accent transition hover:text-accent-strong"
                   >
                     ⬇ 下载此片段
                   </button>
@@ -155,31 +156,31 @@ export default function EpisodePreviewPage({ params }: { params: Promise<{ id: s
           </div>
 
           {/* 分镜列表（播放队列） */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-3" style={{ maxHeight: "70vh", overflowY: "auto" }}>
-            <h3 className="mb-2 text-xs font-semibold text-zinc-400">播放队列</h3>
+          <div className="rounded-xl border border-line bg-surface p-3" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+            <h3 className="mb-2 text-xs font-semibold text-faint">播放队列</h3>
             {shots.map((shot, idx) => (
               <button
                 key={shot.id}
                 onClick={() => playShot(idx)}
                 className={`mb-1 flex w-full items-center gap-2 rounded-lg p-2 text-left transition ${
-                  idx === currentIdx ? "bg-indigo-50 ring-1 ring-indigo-200" : "hover:bg-zinc-50"
+                  idx === currentIdx ? "bg-accent-soft ring-1 ring-accent/20" : "hover:bg-surface-2"
                 }`}
               >
-                <div className="h-10 w-14 flex-shrink-0 overflow-hidden rounded border border-zinc-200 bg-zinc-50">
+                <div className="h-10 w-14 flex-shrink-0 overflow-hidden rounded border border-line bg-surface-2">
                   {shot.keyframeUrl ? (
                     <img src={shot.keyframeUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-zinc-300">#{shot.number}</div>
+                    <div className="flex h-full items-center justify-center text-xs text-faint">#{shot.number}</div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium text-zinc-700">#{shot.number} · {shot.shotType}</div>
-                  <p className="truncate text-xs text-zinc-400">{shot.dialogue || "（无台词）"}</p>
+                  <div className="text-xs font-medium text-ink">#{shot.number} · {shot.shotType}</div>
+                  <p className="truncate text-xs text-faint">{shot.dialogue || "（无台词）"}</p>
                 </div>
                 {shot.videoUrl ? (
-                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-green-500" />
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-success" />
                 ) : (
-                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-zinc-300" />
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-faint" />
                 )}
               </button>
             ))}

@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
 import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input, Textarea, Select, Field } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 
 type Mode = "text2vid" | "img2vid" | "keyframes";
 
@@ -242,8 +246,8 @@ export default function VideoStudio() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       {/* 控制面板 */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex gap-2">
+      <Card className="flex flex-col gap-4 p-5 shadow-sm">
+        <div className="flex gap-1 rounded-xl bg-surface-2 p-1">
           <ModeButton active={mode === "text2vid"} onClick={() => setMode("text2vid")}>
             文生视频
           </ModeButton>
@@ -257,18 +261,18 @@ export default function VideoStudio() {
 
         {mode === "img2vid" && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">输入图片</label>
+            <label className="text-sm font-medium text-ink">输入图片</label>
             <input
               type="file"
               accept="image/*"
               onChange={onImg2vidFile}
-              className="text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:text-accent-strong transition hover:file:bg-accent-soft/70"
             />
             {img2vidPreview && (
               <img
                 src={img2vidPreview}
                 alt="输入图"
-                className="mt-1 max-h-32 w-auto rounded-lg border border-zinc-200 object-contain"
+                className="mt-1 max-h-32 w-auto rounded-lg border border-line object-contain"
               />
             )}
           </div>
@@ -276,7 +280,7 @@ export default function VideoStudio() {
 
         {mode === "keyframes" && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">
+            <label className="text-sm font-medium text-ink">
               关键帧图片（2-4 张，{keyframes.length}/4）
             </label>
             <div className="flex flex-wrap gap-2">
@@ -285,18 +289,18 @@ export default function VideoStudio() {
                   <img
                     src={src}
                     alt={`关键帧 ${i + 1}`}
-                    className="h-20 w-20 rounded-lg border border-zinc-200 object-cover"
+                    className="h-20 w-20 rounded-lg border border-line object-cover"
                   />
                   <button
                     onClick={() => setKeyframes((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-xs text-white"
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-danger/90 text-xs text-white transition hover:bg-danger"
                   >
                     ×
                   </button>
                 </div>
               ))}
               {keyframes.length < 4 && (
-                <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-zinc-300 text-2xl text-zinc-400 hover:border-indigo-400 hover:text-indigo-500">
+                <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-line-strong text-2xl text-faint transition hover:border-accent/40 hover:text-accent">
                   +
                   <input type="file" accept="image/*" onChange={onKeyframeFile} className="hidden" />
                 </label>
@@ -307,115 +311,103 @@ export default function VideoStudio() {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-zinc-700">提示词</label>
+            <label className="text-sm font-medium text-ink">提示词</label>
             <button
               onClick={enhance}
               disabled={enhancing}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+              className="text-xs font-medium text-accent transition hover:text-accent-strong disabled:opacity-50"
             >
               {enhancing ? "优化中…" : "✨ 优化提示词"}
             </button>
           </div>
-          <textarea
+          <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
             placeholder="例如：A young astronaut walking across a red desert planet, slow cinematic tracking shot, dramatic sunset lighting"
-            className="resize-y rounded-lg border border-zinc-300 p-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">时长</label>
-            <select
+          <Field label="时长">
+            <Select
               value={durationIdx}
               onChange={(e) => setDurationIdx(Number(e.target.value))}
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
             >
               {VIDEO_DURATIONS.map((d, i) => (
                 <option key={d.numFrames} value={i}>
                   {d.label}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">尺寸</label>
-            <select
-              value={sizeValue}
-              onChange={(e) => setSizeValue(e.target.value)}
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-            >
+            </Select>
+          </Field>
+          <Field label="尺寸">
+            <Select value={sizeValue} onChange={(e) => setSizeValue(e.target.value)}>
               {VIDEO_SIZE_PRESETS.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
         <details className="text-sm">
-          <summary className="cursor-pointer font-medium text-zinc-600">高级选项</summary>
+          <summary className="cursor-pointer font-medium text-muted transition hover:text-ink">
+            高级选项
+          </summary>
           <div className="mt-3 flex flex-col gap-3">
-            <input
+            <Input
               value={negativePrompt}
               onChange={(e) => setNegativePrompt(e.target.value)}
               placeholder="反向提示词（要避免的内容）"
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
             />
-            <input
+            <Input
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
               placeholder="随机种子（可选，固定后可复现）"
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
             />
           </div>
         </details>
 
-        <button
-          onClick={generate}
-          disabled={busy}
-          className="mt-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button size="lg" className="mt-1 w-full" onClick={generate} disabled={busy}>
           {loading ? "提交任务中…" : polling ? "生成中…请勿关闭页面" : "生成视频"}
-        </button>
+        </Button>
 
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>
         )}
         {noApiKey && (
           <Link
             href="/settings"
-            className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            className="rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent-strong transition hover:bg-accent-soft/70"
           >
             前往设置页填入 API Key
           </Link>
         )}
-      </div>
+      </Card>
 
       {/* 结果区 */}
-      <div className="flex min-h-[320px] flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-700">生成结果</h3>
+      <Card className="flex min-h-[320px] flex-col gap-4 p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-ink">生成结果</h3>
         <div className="flex flex-1 items-center justify-center">
           {busy ? (
             <div className="flex w-full max-w-sm flex-col items-center gap-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-indigo-600" />
-              <span className="text-sm text-zinc-500">{STATUS_TEXT[status] || "处理中…"}</span>
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
+              <Badge tone="accent">{STATUS_TEXT[status] || "处理中…"}</Badge>
               {polling && (
                 <div className="w-full">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
                     <div
-                      className="h-full bg-indigo-600 transition-all"
+                      className="h-full bg-accent transition-all"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <div className="mt-1 text-right text-xs text-zinc-400">{progress}%</div>
+                  <div className="mt-1 text-right text-xs text-faint">{progress}%</div>
                 </div>
               )}
               {videoId && (
-                <div className="text-xs text-zinc-400">任务 ID: {videoId}</div>
+                <div className="text-xs text-faint">任务 ID: {videoId}</div>
               )}
             </div>
           ) : resultUrl ? (
@@ -424,24 +416,28 @@ export default function VideoStudio() {
               controls
               autoPlay
               loop
-              className="max-h-[60vh] w-auto max-w-full rounded-lg border border-zinc-200"
+              className="max-h-[60vh] w-auto max-w-full rounded-lg border border-line animate-scale-in"
             />
           ) : (
-            <div className="text-sm text-zinc-400">生成的视频将显示在这里</div>
+            <div className="flex flex-col items-center gap-2 text-faint">
+              <span className="text-3xl opacity-40">🎬</span>
+              <span className="text-sm">生成的视频将显示在这里</span>
+            </div>
           )}
         </div>
         {resultUrl && !busy && (
-          <button
+          <Button
+            variant="outline"
+            className="border-accent/40 text-accent hover:border-accent hover:bg-accent-soft"
             onClick={download}
-            className="rounded-lg border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
           >
             ⬇ 下载并保存
-          </button>
+          </Button>
         )}
         {resultUrl && !busy && (
-          <p className="text-xs text-zinc-400">结果不会保存，请及时下载到本地</p>
+          <p className="text-xs text-faint">结果不会保存，请及时下载到本地</p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -458,8 +454,10 @@ function ModeButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-lg px-2 py-2 text-xs font-medium transition sm:text-sm ${
-        active ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+      className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition sm:text-sm ${
+        active
+          ? "bg-accent text-white shadow-sm"
+          : "text-muted hover:bg-surface hover:text-ink"
       }`}
     >
       {children}

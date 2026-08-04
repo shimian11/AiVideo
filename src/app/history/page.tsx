@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Input";
 
 interface HistoryTag {
   id: string;
@@ -129,8 +134,8 @@ export default function HistoryPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold">生成历史</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <h1 className="text-2xl font-bold text-ink">生成历史</h1>
+      <p className="mt-1 text-sm text-muted">
         历史只保存提示词与配置，不保存图片/视频。点「重跑」带提示词回到工作台重新生成。
       </p>
 
@@ -138,8 +143,8 @@ export default function HistoryPage() {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <button
           onClick={() => setFilterTagId(null)}
-          className={`rounded-full px-3 py-1 text-xs ${
-            filterTagId === null ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600"
+          className={`rounded-full px-3 py-1 text-xs transition ${
+            filterTagId === null ? "bg-accent text-white" : "bg-surface-2 text-muted hover:bg-line"
           }`}
         >
           全部
@@ -148,15 +153,15 @@ export default function HistoryPage() {
           <span key={t.id} className="group flex items-center">
             <button
               onClick={() => setFilterTagId(t.id)}
-              className={`rounded-l-full px-3 py-1 text-xs ${
-                filterTagId === t.id ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600"
+              className={`rounded-l-full px-3 py-1 text-xs transition ${
+                filterTagId === t.id ? "bg-accent text-white" : "bg-surface-2 text-muted hover:bg-line"
               }`}
             >
               {t.name}
             </button>
             <button
               onClick={() => deleteTag(t.id)}
-              className="rounded-r-full bg-zinc-200 px-2 py-1 text-xs text-zinc-500 hover:bg-red-100 hover:text-red-600"
+              className="rounded-r-full bg-surface-2 px-2 py-1 text-xs text-faint transition hover:bg-danger-soft hover:text-danger"
               title="删除标签"
             >
               ×
@@ -168,80 +173,81 @@ export default function HistoryPage() {
           onChange={(e) => setNewTag(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && createTag()}
           placeholder="新标签"
-          className="ml-1 w-24 rounded-full border border-zinc-300 px-3 py-1 text-xs outline-none focus:border-indigo-500"
+          className="ml-1 w-24 rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink outline-none transition placeholder:text-faint focus:border-accent"
         />
       </div>
 
       {/* 搜索 */}
-      <input
+      <Input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="搜索提示词…"
-        className="mt-4 w-full rounded-lg border border-zinc-300 p-2.5 text-sm outline-none focus:border-indigo-500"
+        className="mt-4"
       />
 
       {/* 列表 */}
       {loading ? (
-        <div className="mt-8 text-sm text-zinc-400">加载中…</div>
+        <div className="mt-8 text-sm text-faint">加载中…</div>
       ) : filtered.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-zinc-300 p-12 text-center text-sm text-zinc-400">
-          暂无历史，去
-          <Link href="/image" className="mx-1 text-indigo-600">生成图片</Link>
-          或
-          <Link href="/video" className="mx-1 text-indigo-600">视频</Link>
-          吧
+        <div className="mt-8">
+          <EmptyState
+            icon="🗂️"
+            title="暂无历史"
+            hint="生成图片或视频后会保存在这里"
+            action={
+              <div className="flex items-center gap-3 text-sm">
+                <Link href="/image" className="text-accent hover:text-accent-strong">去生成图片</Link>
+                <span className="text-faint">或</span>
+                <Link href="/video" className="text-accent hover:text-accent-strong">生成视频</Link>
+              </div>
+            }
+          />
         </div>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-4 flex flex-col gap-3 animate-fade-in">
           {filtered.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
-            >
+            <Card key={item.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600">
+                    <Badge tone={item.type === "IMAGE" ? "default" : "accent"}>
                       {item.type === "IMAGE" ? "图" : "视"}
-                    </span>
-                    <span className="text-xs text-zinc-400">
+                    </Badge>
+                    <span className="text-xs text-faint">
                       {configSummary(item.type, item.config)}
                     </span>
-                    <span className="text-xs text-zinc-400">
+                    <span className="text-xs text-faint">
                       {new Date(item.createdAt).toLocaleString()}
                     </span>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-zinc-800">{item.prompt}</p>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink">{item.prompt}</p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Link
                     href={`${item.type === "IMAGE" ? "/image" : "/video"}?prompt=${encodeURIComponent(item.prompt)}`}
-                    className="rounded-lg border border-indigo-600 px-3 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50"
+                    className="inline-flex items-center rounded-lg border border-accent px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent-soft"
                   >
                     重跑
                   </Link>
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    className="rounded-lg border border-zinc-300 px-3 py-1 text-xs text-zinc-500 hover:border-red-500 hover:text-red-600"
-                  >
+                  <Button size="sm" variant="danger" onClick={() => deleteItem(item.id)}>
                     删除
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               {/* 标签编辑 */}
               {tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-zinc-100 pt-3">
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
                   {tags.map((t) => {
                     const on = item.tags.some((it) => it.tag.id === t.id);
                     return (
                       <button
                         key={t.id}
                         onClick={() => toggleTag(item.id, t.id)}
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] ${
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] transition ${
                           on
-                            ? "bg-indigo-600 text-white"
-                            : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                            ? "bg-accent text-white"
+                            : "bg-surface-2 text-muted hover:bg-line"
                         }`}
                       >
                         {t.name}
@@ -250,7 +256,7 @@ export default function HistoryPage() {
                   })}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/Button";
+import { Input, Field } from "@/components/ui/Input";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -38,41 +40,54 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-4 px-4 py-16">
-      <h1 className="text-2xl font-bold">注册</h1>
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          required
-          placeholder="邮箱"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-zinc-300 p-2.5 text-sm outline-none focus:border-indigo-500"
-        />
-        <input
-          type="password"
-          required
-          minLength={8}
-          placeholder="密码（至少 8 位）"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg border border-zinc-300 p-2.5 text-sm outline-none focus:border-indigo-500"
-        />
-        {error && <div className="text-sm text-red-600">{error}</div>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {loading ? "注册中…" : "注册"}
-        </button>
-      </form>
-      <p className="text-sm text-zinc-500">
-        已有账号？
-        <Link href="/login" className="text-indigo-600">
-          登录
-        </Link>
-      </p>
+    <div className="relative flex min-h-[calc(100dvh-3.5rem)] items-center justify-center overflow-hidden px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 grid-bg opacity-60" />
+      <div className="relative w-full max-w-sm animate-scale-in">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold text-ink">注册</h1>
+          <p className="mt-1.5 text-sm text-muted">创建账号，开始创作</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-surface p-7 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)]">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
+            <Field label="邮箱" required>
+              <Input
+                type="email"
+                required
+                placeholder="邮箱"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field label="密码" required hint="至少 8 位">
+              <Input
+                type="password"
+                required
+                minLength={8}
+                placeholder="密码（至少 8 位）"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+            {error && (
+              <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+                {error}
+              </div>
+            )}
+            <Button type="submit" size="lg" disabled={loading} className="w-full">
+              {loading ? "注册中…" : "注册"}
+            </Button>
+          </form>
+        </div>
+        <p className="mt-6 text-center text-sm text-muted">
+          已有账号？
+          <Link
+            href="/login"
+            className="font-medium text-accent transition hover:text-accent-strong"
+          >
+            登录
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

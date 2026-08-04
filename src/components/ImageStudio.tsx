@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { IMAGE_SIZES, IMAGE_RATIOS } from "@/lib/constants";
 import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Textarea, Select, Field } from "@/components/ui/Input";
 
 type Mode = "text2img" | "img2img";
 
@@ -119,8 +122,8 @@ export default function ImageStudio() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       {/* 控制面板 */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex gap-2">
+      <Card className="flex flex-col gap-4 p-5 shadow-sm">
+        <div className="flex gap-1 rounded-xl bg-surface-2 p-1">
           <ModeButton active={mode === "text2img"} onClick={() => setMode("text2img")}>
             文生图
           </ModeButton>
@@ -131,127 +134,116 @@ export default function ImageStudio() {
 
         {mode === "img2img" && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">参考图片</label>
+            <label className="text-sm font-medium text-ink">参考图片</label>
             <input
               type="file"
               accept="image/*"
               onChange={onFile}
-              className="text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-soft file:px-3 file:py-1.5 file:text-accent-strong transition hover:file:bg-accent-soft/70"
             />
             {inputPreview && (
               <img
                 src={inputPreview}
                 alt="参考图"
-                className="mt-1 max-h-40 w-auto rounded-lg border border-zinc-200 object-contain"
+                className="mt-1 max-h-40 w-auto rounded-lg border border-line object-contain"
               />
             )}
-            <p className="text-xs text-zinc-400">上传图片将用于风格转换 / 重绘，并尽量保留原始构图</p>
+            <p className="text-xs text-faint">上传图片将用于风格转换 / 重绘，并尽量保留原始构图</p>
           </div>
         )}
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-zinc-700">提示词</label>
+            <label className="text-sm font-medium text-ink">提示词</label>
             <button
               onClick={enhance}
               disabled={enhancing}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+              className="text-xs font-medium text-accent transition hover:text-accent-strong disabled:opacity-50"
             >
               {enhancing ? "优化中…" : "✨ 优化提示词"}
             </button>
           </div>
-          <textarea
+          <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={4}
             placeholder="描述你想生成的画面，例如：日出时分薄雾峡谷上方的发光浮空城市，电影级写实风格"
-            className="resize-y rounded-lg border border-zinc-300 p-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">尺寸档位</label>
-            <select
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-            >
+          <Field label="尺寸档位">
+            <Select value={size} onChange={(e) => setSize(e.target.value)}>
               {IMAGE_SIZES.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700">宽高比</label>
-            <select
-              value={ratio}
-              onChange={(e) => setRatio(e.target.value)}
-              className="rounded-lg border border-zinc-300 p-2 text-sm outline-none focus:border-indigo-500"
-            >
+            </Select>
+          </Field>
+          <Field label="宽高比">
+            <Select value={ratio} onChange={(e) => setRatio(e.target.value)}>
               {IMAGE_RATIOS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
-        <button
-          onClick={generate}
-          disabled={loading}
-          className="mt-1 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button size="lg" className="mt-1 w-full" onClick={generate} disabled={loading}>
           {loading ? "生成中…（可能需要数十秒）" : "生成图片"}
-        </button>
+        </Button>
 
         {error && (
-          <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</div>
         )}
         {noApiKey && (
           <Link
             href="/settings"
-            className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            className="rounded-lg bg-accent-soft px-3 py-2 text-sm font-medium text-accent-strong transition hover:bg-accent-soft/70"
           >
             前往设置页填入 API Key
           </Link>
         )}
-      </div>
+      </Card>
 
       {/* 结果区 */}
-      <div className="flex min-h-[320px] flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-700">生成结果</h3>
+      <Card className="flex min-h-[320px] flex-col gap-4 p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-ink">生成结果</h3>
         <div className="flex flex-1 items-center justify-center">
           {loading ? (
-            <div className="flex flex-col items-center gap-3 text-zinc-400">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-indigo-600" />
+            <div className="flex flex-col items-center gap-3 text-faint">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
               <span className="text-sm">正在生成图片…</span>
             </div>
           ) : resultUrl ? (
             <img
               src={resultUrl}
               alt="生成结果"
-              className="max-h-[60vh] w-auto max-w-full rounded-lg border border-zinc-200 object-contain"
+              className="max-h-[60vh] w-auto max-w-full rounded-lg border border-line object-contain animate-scale-in"
             />
           ) : (
-            <div className="text-sm text-zinc-400">生成的图片将显示在这里</div>
+            <div className="flex flex-col items-center gap-2 text-faint">
+              <span className="text-3xl opacity-40">🖼️</span>
+              <span className="text-sm">生成的图片将显示在这里</span>
+            </div>
           )}
         </div>
         {resultUrl && !loading && (
-          <button
+          <Button
+            variant="outline"
+            className="border-accent/40 text-accent hover:border-accent hover:bg-accent-soft"
             onClick={download}
-            className="rounded-lg border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50"
           >
             ⬇ 下载并保存
-          </button>
+          </Button>
         )}
         {resultUrl && !loading && (
-          <p className="text-xs text-zinc-400">结果不会保存，请及时下载到本地</p>
+          <p className="text-xs text-faint">结果不会保存，请及时下载到本地</p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -268,8 +260,10 @@ function ModeButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
-        active ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+      className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+        active
+          ? "bg-accent text-white shadow-sm"
+          : "text-muted hover:bg-surface hover:text-ink"
       }`}
     >
       {children}

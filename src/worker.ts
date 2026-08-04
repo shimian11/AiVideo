@@ -228,7 +228,7 @@ async function executeStep(step: { id: string; type: string; input: unknown }): 
   // 获取用户 API Key
   const userId = shot.scene.episode.season.series.userId;
   const apiKey = await getDecryptedApiKey(userId);
-  if (!apiKey) throw new Error("用户未设置 Agnes API Key");
+  if (!apiKey) throw new Error("未配置 API Key，请在设置页添加或联系管理员配置默认 Key");
 
   // 获取风格设定（取第一个）
   const style = shot.scene.episode.season.series.styles[0] || null;
@@ -422,14 +422,17 @@ async function pollVideoResult(videoId: string, apiKey: string, shotId: string):
 // ============ 辅助函数 ============
 
 /**
- * 获取并解密用户的 Agnes API Key
+ * 获取并解密用户当前选用的 Agnes API Key
+ * 优先取 isDefault 的 key；未选用时 fallback 到系统默认（AGNES_DEFAULT_API_KEY）
  * @param userId - 用户ID
  * @returns 解密后的 API Key，或 null
  */
 async function getDecryptedApiKey(userId: string): Promise<string | null> {
-  const rec = await prisma.userApiKey.findUnique({ where: { userId } });
-  if (!rec) return null;
-  return decrypt(rec.encryptedKey);
+  const rec = await prisma.userApiKey.findFirst({
+    where: { userId, isDefault: true },
+  });
+  if (rec) return decrypt(rec.encryptedKey);
+  return process.env.AGNES_DEFAULT_API_KEY || null;
 }
 
 /**
