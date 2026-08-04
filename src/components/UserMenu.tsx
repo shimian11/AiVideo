@@ -72,7 +72,8 @@ export function UserMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right rounded-xl border border-line p-1.5 shadow-xl shadow-ink/10 animate-fade-in glass">
+        <div className="absolute right-0 top-full z-50 w-64 pt-2">
+          <div className="origin-top-right rounded-xl border border-line p-1.5 shadow-xl shadow-ink/10 animate-fade-in glass">
           {/* 身份区 */}
           <div className="flex items-center gap-3 px-2.5 py-2.5">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full accent-gradient text-sm font-semibold text-white">
@@ -104,6 +105,7 @@ export function UserMenu({
             <Icon path="M16 17l5-5-5-5M21 12H9M13 4H5a2 2 0 00-2 2v12a2 2 0 002 2h8" />
             退出登录
           </button>
+          </div>
         </div>
       )}
     </div>

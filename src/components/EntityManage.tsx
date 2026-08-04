@@ -26,6 +26,8 @@ export interface EntityField {
   options?: { value: string; label: string }[];
   required?: boolean;
   hint?: string;
+  /** 主描述字段标记：为 true 时在标签旁渲染「AI 扩写」按钮 */
+  aiAssist?: boolean;
 }
 
 export interface CardItem {
@@ -46,6 +48,7 @@ export function EntityManage({
   itemApiBase,
   fields,
   renderCard,
+  type,
 }: {
   seriesId: string;
   title: string;
@@ -56,6 +59,7 @@ export function EntityManage({
   itemApiBase: string;
   fields: EntityField[];
   renderCard: (item: Record<string, unknown>) => CardItem;
+  type: "character" | "location" | "style";
 }) {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +67,10 @@ export function EntityManage({
   const [form, setForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // AI 扩写正在进行的字段 key（同时只扩写一个字段）
+  const [describeLoading, setDescribeLoading] = useState<string | null>(null);
+  // 参考图生成 loading
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     load();
@@ -84,8 +92,53 @@ export function EntityManage({
     setEditing(item);
     const f: Record<string, string> = {};
     for (const fld of fields) f[fld.key] = String(item[fld.key] ?? "");
+    // referenceUrl 始终纳入 form（风格页未暴露该字段，但需用于参考图预览与生成）
+    if (!("referenceUrl" in f)) f.referenceUrl = String(item.referenceUrl ?? "");
     setForm(f);
     setError(null);
+  }
+
+  /** AI 扩写：弹出输入框 -> 调 /api/assist/describe -> 回填指定字段 */
+  async function aiDescribe(fieldKey: string) {
+    const input = window.prompt("请输入简短描述，AI 将为你扩写：");
+    if (!input?.trim()) return;
+    setDescribeLoading(fieldKey);
+    setError(null);
+    try {
+      const res = await fetch("/api/assist/describe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, input: input.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "扩写失败");
+      setForm((s) => ({ ...s, [fieldKey]: d.text }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "扩写失败");
+    } finally {
+      setDescribeLoading(null);
+    }
+  }
+
+  /** 生成参考图：调 /api/entity/generate-image -> 更新 referenceUrl + 预览 */
+  async function generateRefImage() {
+    if (!editing) return;
+    setImageLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/entity/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, id: String(editing.id) }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "生成失败");
+      setForm((s) => ({ ...s, referenceUrl: d.url }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "生成失败");
+    } finally {
+      setImageLoading(false);
+    }
   }
 
   async function save() {
@@ -222,6 +275,16 @@ export function EntityManage({
             const val = form[f.key] ?? "";
             const set = (v: string) =>
               setForm((s) => ({ ...s, [f.key]: v }));
+            const labelAddon = f.aiAssist ? (
+              <button
+                type="button"
+                onClick={() => aiDescribe(f.key)}
+                disabled={describeLoading === f.key}
+                className="text-xs text-accent transition hover:text-accent-strong disabled:opacity-50"
+              >
+                {describeLoading === f.key ? "扩写中…" : "✨ AI 扩写"}
+              </button>
+            ) : undefined;
             if (f.type === "textarea") {
               return (
                 <Field
@@ -229,6 +292,7 @@ export function EntityManage({
                   label={f.label}
                   required={f.required}
                   hint={f.hint}
+                  labelAddon={labelAddon}
                 >
                   <Textarea
                     value={val}
@@ -245,6 +309,7 @@ export function EntityManage({
                   label={f.label}
                   required={f.required}
                   hint={f.hint}
+                  labelAddon={labelAddon}
                 >
                   <Select value={val} onChange={(e) => set(e.target.value)}>
                     {f.options?.map((o) => (
@@ -262,11 +327,38 @@ export function EntityManage({
                 label={f.label}
                 required={f.required}
                 hint={f.hint}
+                labelAddon={labelAddon}
               >
                 <Input value={val} onChange={(e) => set(e.target.value)} />
               </Field>
             );
           })}
+          {editing && (
+            <div className="rounded-xl border border-line bg-surface-2 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">参考图</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={generateRefImage}
+                  disabled={imageLoading}
+                >
+                  {imageLoading ? "生成中…" : "✨ 生成参考图"}
+                </Button>
+              </div>
+              {form.referenceUrl ? (
+                <img
+                  src={form.referenceUrl}
+                  alt="参考图"
+                  className="mt-2 h-40 w-full rounded-lg object-cover"
+                />
+              ) : (
+                <p className="mt-2 text-xs text-faint">
+                  暂无参考图，点击上方按钮 AI 生成
+                </p>
+              )}
+            </div>
+          )}
           {error && (
             <div className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
               {error}

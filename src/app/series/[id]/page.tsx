@@ -143,6 +143,12 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
             <span>计划 {series.targetCount} 集</span>
           </p>
         </div>
+        <Link
+          href={`/series/${id}/generate-video`}
+          className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
+        >
+          AI 生视频
+        </Link>
       </div>
 
       {/* Tab 导航 */}

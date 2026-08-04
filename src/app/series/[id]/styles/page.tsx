@@ -16,6 +16,7 @@ const fields: EntityField[] = [
     type: "textarea",
     required: true,
     hint: "如：赛博朋克、水彩、写实电影感",
+    aiAssist: true,
   },
   { key: "colorPalette", label: "配色", hint: "如：青橙对比、莫兰迪低饱和" },
   { key: "cameraStyle", label: "镜头风格", hint: "如：手持纪实、广角夸张" },
@@ -38,6 +39,7 @@ export default function StylesPage({
       listPath="styles"
       itemApiBase="/api/styles"
       fields={fields}
+      type="style"
       renderCard={(it) => ({
         id: String(it.id),
         title: String(it.name),

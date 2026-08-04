@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,7 @@ interface HistoryItem {
   type: "IMAGE" | "VIDEO";
   prompt: string;
   config: Record<string, unknown>;
+  resultUrl?: string | null;
   createdAt: string;
   tags: { tag: HistoryTag }[];
 }
@@ -38,6 +40,7 @@ export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [newTag, setNewTag] = useState("");
+  const router = useRouter();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,7 +139,7 @@ export default function HistoryPage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-bold text-ink">生成历史</h1>
       <p className="mt-1 text-sm text-muted">
-        历史只保存提示词与配置，不保存图片/视频。点「重跑」带提示词回到工作台重新生成。
+        保存提示词、配置与结果，点击查看详情。
       </p>
 
       {/* 标签栏 */}
@@ -206,57 +209,96 @@ export default function HistoryPage() {
       ) : (
         <div className="mt-4 flex flex-col gap-3 animate-fade-in">
           {filtered.map((item) => (
-            <Card key={item.id} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge tone={item.type === "IMAGE" ? "default" : "accent"}>
-                      {item.type === "IMAGE" ? "图" : "视"}
-                    </Badge>
-                    <span className="text-xs text-faint">
-                      {configSummary(item.type, item.config)}
-                    </span>
-                    <span className="text-xs text-faint">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </span>
+            <Link key={item.id} href={`/history/${item.id}`} className="block">
+              <Card className="p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-[0_4px_20px_-6px_rgba(99,102,241,0.18)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    {item.resultUrl && (
+                      <div className="shrink-0">
+                        {item.type === "IMAGE" ? (
+                          <img
+                            src={item.resultUrl}
+                            alt=""
+                            className="h-16 w-16 rounded-lg border border-line object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-line bg-surface-2 text-2xl">
+                            🎬
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={item.type === "IMAGE" ? "default" : "accent"}>
+                          {item.type === "IMAGE" ? "图" : "视"}
+                        </Badge>
+                        <span className="text-xs text-faint">
+                          {configSummary(item.type, item.config)}
+                        </span>
+                        <span className="text-xs text-faint">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-ink">{item.prompt}</p>
+                    </div>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-ink">{item.prompt}</p>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-accent text-accent hover:bg-accent-soft"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        router.push(
+                          `${item.type === "IMAGE" ? "/image" : "/video"}?prompt=${encodeURIComponent(item.prompt)}`,
+                        );
+                      }}
+                    >
+                      重跑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void deleteItem(item.id);
+                      }}
+                    >
+                      删除
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <Link
-                    href={`${item.type === "IMAGE" ? "/image" : "/video"}?prompt=${encodeURIComponent(item.prompt)}`}
-                    className="inline-flex items-center rounded-lg border border-accent px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent-soft"
-                  >
-                    重跑
-                  </Link>
-                  <Button size="sm" variant="danger" onClick={() => deleteItem(item.id)}>
-                    删除
-                  </Button>
-                </div>
-              </div>
 
-              {/* 标签编辑 */}
-              {tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
-                  {tags.map((t) => {
-                    const on = item.tags.some((it) => it.tag.id === t.id);
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => toggleTag(item.id, t.id)}
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] transition ${
-                          on
-                            ? "bg-accent text-white"
-                            : "bg-surface-2 text-muted hover:bg-line"
-                        }`}
-                      >
-                        {t.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
+                {/* 标签编辑 */}
+                {tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
+                    {tags.map((t) => {
+                      const on = item.tags.some((it) => it.tag.id === t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void toggleTag(item.id, t.id);
+                          }}
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] transition ${
+                            on
+                              ? "bg-accent text-white"
+                              : "bg-surface-2 text-muted hover:bg-line"
+                          }`}
+                        >
+                          {t.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            </Link>
           ))}
         </div>
       )}

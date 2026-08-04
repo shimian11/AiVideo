@@ -16,6 +16,7 @@ const fields: EntityField[] = [
     type: "textarea",
     required: true,
     hint: "环境、布局、氛围元素等",
+    aiAssist: true,
   },
   { key: "mood", label: "氛围", hint: "如：紧张、温馨、萧瑟" },
   { key: "lightingNotes", label: "光线备注", hint: "如：黄昏逆光、冷色调" },
@@ -38,6 +39,7 @@ export default function LocationsPage({
       listPath="locations"
       itemApiBase="/api/locations"
       fields={fields}
+      type="location"
       renderCard={(it) => ({
         id: String(it.id),
         title: String(it.name),

@@ -34,6 +34,7 @@ export default function VideoStudio() {
   const [loading, setLoading] = useState(false); // 创建任务中
   const [polling, setPolling] = useState(false); // 轮询结果中
   const [videoId, setVideoId] = useState<string>("");
+  const [historyId, setHistoryId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -54,6 +55,8 @@ export default function VideoStudio() {
     const saved = localStorage.getItem("agnes_video_id");
     if (saved) {
       setVideoId(saved);
+      const savedHid = localStorage.getItem("agnes_video_history_id");
+      if (savedHid) setHistoryId(savedHid);
       void pollStatus(saved);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,6 +137,11 @@ export default function VideoStudio() {
           if (data.status === "completed") {
             setResultUrl(data.url || null);
             done = true;
+            // 回填结果 URL 到生成历史
+            const hid = historyId || localStorage.getItem("agnes_video_history_id");
+            if (hid && data.url) {
+              void fillHistoryResultUrl(hid, data.url);
+            }
           } else if (data.status === "failed") {
             setError(data.error || "视频生成失败");
             done = true;
@@ -171,6 +179,19 @@ export default function VideoStudio() {
     }
     setPolling(false);
     localStorage.removeItem("agnes_video_id");
+    localStorage.removeItem("agnes_video_history_id");
+  }
+
+  async function fillHistoryResultUrl(hid: string, url: string) {
+    try {
+      await fetch(`/api/history/${hid}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultUrl: url }),
+      });
+    } catch {
+      // 回填失败不影响结果展示
+    }
   }
 
   async function generate() {
@@ -226,7 +247,13 @@ export default function VideoStudio() {
         throw new Error(data.error || "创建任务失败");
       }
       setVideoId(data.videoId);
+      setHistoryId(data.historyId || "");
       localStorage.setItem("agnes_video_id", data.videoId);
+      if (data.historyId) {
+        localStorage.setItem("agnes_video_history_id", data.historyId);
+      } else {
+        localStorage.removeItem("agnes_video_history_id");
+      }
       setStatus(data.status || "queued");
       setLoading(false);
       await pollStatus(data.videoId);
@@ -435,7 +462,17 @@ export default function VideoStudio() {
           </Button>
         )}
         {resultUrl && !busy && (
-          <p className="text-xs text-faint">结果不会保存，请及时下载到本地</p>
+          <div className="flex items-center justify-between text-xs text-faint">
+            <span>结果已保存到历史</span>
+            {historyId && (
+              <Link
+                href={`/history/${historyId}`}
+                className="font-medium text-accent transition hover:text-accent-strong"
+              >
+                查看详情 →
+              </Link>
+            )}
+          </div>
         )}
       </Card>
     </div>

@@ -17,8 +17,8 @@ export async function POST(request: Request) {
   }
   try {
     const body = await request.json().catch(() => ({}));
-    const { prompt, size, ratio, mode, inputImage } = body as {
-      prompt?: string; size?: string; ratio?: string; mode?: string; inputImage?: string;
+    const { prompt, size, ratio, mode, inputImage, seriesId } = body as {
+      prompt?: string; size?: string; ratio?: string; mode?: string; inputImage?: string; seriesId?: string;
     };
     if (!prompt?.trim()) return Response.json({ error: "请输入提示词" }, { status: 400 });
     if (!size) return Response.json({ error: "请选择尺寸" }, { status: 400 });
@@ -41,9 +41,11 @@ export async function POST(request: Request) {
     await prisma.generationHistory.create({
       data: {
         userId: session.user.id,
+        seriesId: seriesId || null,
         type: "IMAGE",
         prompt: prompt.trim(),
         config: { size, ratio, mode: m },
+        resultUrl: result.url || null,
       },
     });
 

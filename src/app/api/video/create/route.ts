@@ -20,11 +20,11 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const {
       prompt, mode, image, keyframes, width, height,
-      numFrames, frameRate, negativePrompt, seed,
+      numFrames, frameRate, negativePrompt, seed, seriesId,
     } = body as {
       prompt?: string; mode?: string; image?: string; keyframes?: string[];
       width?: number; height?: number; numFrames?: number; frameRate?: number;
-      negativePrompt?: string; seed?: number | string;
+      negativePrompt?: string; seed?: number | string; seriesId?: string;
     };
 
     if (!prompt?.trim()) return Response.json({ error: "请输入提示词" }, { status: 400 });
@@ -58,9 +58,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "创建任务失败: 未返回 video_id" }, { status: 502 });
     }
 
-    await prisma.generationHistory.create({
+    const history = await prisma.generationHistory.create({
       data: {
         userId: session.user.id,
+        seriesId: seriesId || null,
         type: "VIDEO",
         prompt: prompt.trim(),
         config: {
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return Response.json(task);
+    return Response.json({ ...task, historyId: history.id });
   } catch (err) {
     if (err instanceof AgnesError) {
       return Response.json({ error: err.message }, { status: err.status });

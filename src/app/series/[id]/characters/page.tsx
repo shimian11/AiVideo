@@ -34,6 +34,7 @@ const fields: EntityField[] = [
     type: "textarea",
     required: true,
     hint: "越具体越好：年龄、性别、发型、五官、身材等",
+    aiAssist: true,
   },
   { key: "personality", label: "性格设定", type: "textarea" },
   { key: "outfit", label: "服装描述" },
@@ -58,6 +59,7 @@ export default function CharactersPage({
       listPath="characters"
       itemApiBase="/api/characters"
       fields={fields}
+      type="character"
       renderCard={(it) => ({
         id: String(it.id),
         title: String(it.name),

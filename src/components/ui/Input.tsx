@@ -51,18 +51,24 @@ export function Field({
   required,
   hint,
   children,
+  labelAddon,
 }: {
   label: string;
   required?: boolean;
   hint?: string;
   children: ReactNode;
+  /** 渲染在标签右侧的附加内容，如 AI 辅助按钮 */
+  labelAddon?: ReactNode;
 }) {
   return (
     <div>
-      <label className="text-sm font-medium text-ink">
-        {label}
-        {required && <span className="ml-0.5 text-danger">*</span>}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="text-sm font-medium text-ink">
+          {label}
+          {required && <span className="ml-0.5 text-danger">*</span>}
+        </label>
+        {labelAddon}
+      </div>
       {hint && <p className="mt-0.5 text-xs text-faint">{hint}</p>}
       <div className="mt-1.5">{children}</div>
     </div>

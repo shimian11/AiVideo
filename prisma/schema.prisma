@@ -93,6 +93,7 @@ model Series {
   styles      StyleProfile[]
   seasons     Season[]
   scripts     Script[]
+  history     GenerationHistory[]
 
   @@index([userId])
 }
@@ -164,6 +165,7 @@ model StyleProfile {
   colorPalette   String?
   cameraStyle    String?
   negativePrompt String?  @db.Text
+  referenceUrl   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -328,13 +330,17 @@ model JobStep {
 model GenerationHistory {
   id        String          @id @default(cuid())
   userId    String
+  seriesId  String?
   type      GenerationType
   prompt    String          @db.Text
   config    Json
+  resultUrl String?
   createdAt DateTime        @default(now())
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series    Series?         @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   tags      TagOnHistory[]
   @@index([userId, createdAt])
+  @@index([seriesId])
 }
 
 enum GenerationType {
