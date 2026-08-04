@@ -17,7 +17,7 @@ services:
       retries: 5
 
   app:
-    image: aivideo-app:latest
+    image: ghcr.io/shimian11/aivideo-app:latest
     build:
       context: .
       target: runner
@@ -37,7 +37,7 @@ services:
 
   # Worker 进程：独立运行的任务队列消费者，处理批量生成任务
   worker:
-    image: aivideo-worker:latest
+    image: ghcr.io/shimian11/aivideo-worker:latest
     build:
       context: .
       target: worker
