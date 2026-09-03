@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
-import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
+import { triggerDownload, compressImageFile } from "@/lib/client-utils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Textarea, Select, Field } from "@/components/ui/Input";
@@ -72,7 +72,8 @@ export default function VideoStudio() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const uri = await fileToDataUri(file);
+      // 压缩后再用，避免超大 base64 请求体超过请求体上限
+      const uri = await compressImageFile(file);
       setImg2vid(uri);
       setImg2vidPreview(uri);
     } catch {
@@ -85,7 +86,7 @@ export default function VideoStudio() {
     if (!file) return;
     if (keyframes.length >= 4) return;
     try {
-      const uri = await fileToDataUri(file);
+      const uri = await compressImageFile(file);
       setKeyframes((prev) => [...prev, uri]);
     } catch {
       setError("图片读取失败");
@@ -236,7 +237,22 @@ export default function VideoStudio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      // 服务端可能返回空/非 JSON 响应体（如网关 413），先读文本再安全解析
+      const text = await res.text();
+      let data: {
+        code?: string;
+        error?: string;
+        videoId?: string;
+        historyId?: string;
+        status?: string;
+      } = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = {};
+        }
+      }
       if (!res.ok) {
         if (data.code === "NO_API_KEY") {
           setError("未设置 Agnes API Key，请先到设置页填入");
@@ -244,11 +260,14 @@ export default function VideoStudio() {
           setLoading(false);
           return;
         }
-        throw new Error(data.error || "创建任务失败");
+        throw new Error(
+          (data.error as string) ||
+            `创建任务失败（HTTP ${res.status}），请检查图片大小后重试`,
+        );
       }
-      setVideoId(data.videoId);
+      setVideoId(data.videoId ?? "");
       setHistoryId(data.historyId || "");
-      localStorage.setItem("agnes_video_id", data.videoId);
+      localStorage.setItem("agnes_video_id", data.videoId ?? "");
       if (data.historyId) {
         localStorage.setItem("agnes_video_history_id", data.historyId);
       } else {
@@ -256,7 +275,7 @@ export default function VideoStudio() {
       }
       setStatus(data.status || "queued");
       setLoading(false);
-      await pollStatus(data.videoId);
+      await pollStatus(data.videoId ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建任务失败");
       setLoading(false);
