@@ -1,7 +1,15 @@
+# 容器日志上限：默认 json-file 驱动无上限，日志会无限增长写满磁盘
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -22,6 +30,7 @@ services:
       context: .
       target: runner
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       db:
         condition: service_healthy
@@ -44,6 +53,7 @@ services:
       context: .
       target: worker
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       db:
         condition: service_healthy
