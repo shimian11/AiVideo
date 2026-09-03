@@ -1,14 +1,13 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 
 function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") || "/";
   const [email, setEmail] = useState("");
@@ -25,8 +24,10 @@ function LoginForm() {
     if (res?.error) {
       setError("邮箱或密码错误");
     } else {
-      router.push(callbackUrl);
-      router.refresh();
+      // 用整页跳转而非 router.push：未登录期间预取的受保护页 RSC 响应
+      // （307 → /login）仍留在路由缓存里，push 会被缓存重定向拉回登录页，
+      // 表现为"要登录两次"。整页跳转让中间件拿到最新 Cookie 重新渲染。
+      window.location.assign(callbackUrl);
     }
   }
 

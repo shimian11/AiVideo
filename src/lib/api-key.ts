@@ -2,17 +2,30 @@ import prisma from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
 
 /**
- * 取并解密用户当前选用的 API Key。
- * 优先取 isDefault=true 的 key；用户未选用或无 key 时 fallback 到系统默认
- * （环境变量 AGNES_DEFAULT_API_KEY）；都没有返回 null。
+ * 取并解密用户当前可用的 API Key。
+ *
+ * 容错策略：依次尝试用户的所有 Key（isDefault 优先，其余按创建时间），
+ * 单条解密失败（如该密文是用旧 ENCRYPTION_KEY 加密的）时跳过继续尝试下一条，
+ * 全部失败时回退系统默认（环境变量 AGNES_DEFAULT_API_KEY）。
+ *
+ * 本函数保证不抛异常：调用方（各 AI 路由）依赖返回 null 走 NO_API_KEY 分支，
+ * 若在这里抛错会导致路由 500 且响应体为空，前端表现为
+ * "Unexpected end of JSON input"。
  */
 export async function getDecryptedApiKey(
   userId: string,
 ): Promise<string | null> {
-  const rec = await prisma.userApiKey.findFirst({
-    where: { userId, isDefault: true },
+  const records = await prisma.userApiKey.findMany({
+    where: { userId },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
   });
-  if (rec) return decrypt(rec.encryptedKey);
+  for (const rec of records) {
+    try {
+      return decrypt(rec.encryptedKey);
+    } catch {
+      // 密文与当前 ENCRYPTION_KEY 不匹配，跳过该条尝试下一条
+    }
+  }
   return process.env.AGNES_DEFAULT_API_KEY || null;
 }
 

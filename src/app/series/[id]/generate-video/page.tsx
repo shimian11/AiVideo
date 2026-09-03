@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { use } from "react";
 import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
-import { fileToDataUri, triggerDownload } from "@/lib/client-utils";
+import { triggerDownload, compressImageFile } from "@/lib/client-utils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Textarea, Select, Field } from "@/components/ui/Input";
@@ -236,7 +236,8 @@ export default function SeriesGenerateVideoPage({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const uri = await fileToDataUri(file);
+      // 客户端压缩后再上传，避免超大 base64 请求体
+      const uri = await compressImageFile(file);
       setImg2vidImage(uri);
     } catch {
       setError("图片读取失败");
@@ -249,7 +250,7 @@ export default function SeriesGenerateVideoPage({
     if (!file) return;
     if (keyframes.length >= 4) return;
     try {
-      const uri = await fileToDataUri(file);
+      const uri = await compressImageFile(file);
       setKeyframes((prev) => [...prev, uri]);
     } catch {
       setError("图片读取失败");
@@ -408,7 +409,22 @@ export default function SeriesGenerateVideoPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      // 服务端可能返回空/非 JSON 响应体，先读文本再安全解析
+      const text = await res.text();
+      let data: {
+        code?: string;
+        error?: string;
+        videoId?: string;
+        historyId?: string;
+        status?: string;
+      } = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = {};
+        }
+      }
       if (!res.ok) {
         if (data.code === "NO_API_KEY") {
           setError("未设置 Agnes API Key，请先到设置页填入");
@@ -416,12 +432,12 @@ export default function SeriesGenerateVideoPage({
           setCreating(false);
           return;
         }
-        throw new Error(data.error || "创建任务失败");
+        throw new Error(data.error || `创建任务失败（HTTP ${res.status}），请稍后重试`);
       }
-      setVideoId(data.videoId);
+      setVideoId(data.videoId ?? "");
       setStatus(data.status || "queued");
       setCreating(false);
-      await pollStatus(data.videoId, data.historyId);
+      await pollStatus(data.videoId ?? "", data.historyId ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建任务失败");
       setCreating(false);

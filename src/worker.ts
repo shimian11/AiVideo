@@ -422,16 +422,24 @@ async function pollVideoResult(videoId: string, apiKey: string, shotId: string):
 // ============ 辅助函数 ============
 
 /**
- * 获取并解密用户当前选用的 Agnes API Key
- * 优先取 isDefault 的 key；未选用时 fallback 到系统默认（AGNES_DEFAULT_API_KEY）
+ * 获取并解密用户当前可用的 Agnes API Key
+ * 容错策略：依次尝试用户所有 Key（isDefault 优先），单条解密失败跳过下一条，
+ * 全部失败时回退系统默认（AGNES_DEFAULT_API_KEY）。保证不抛异常。
  * @param userId - 用户ID
  * @returns 解密后的 API Key，或 null
  */
 async function getDecryptedApiKey(userId: string): Promise<string | null> {
-  const rec = await prisma.userApiKey.findFirst({
-    where: { userId, isDefault: true },
+  const records = await prisma.userApiKey.findMany({
+    where: { userId },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
   });
-  if (rec) return decrypt(rec.encryptedKey);
+  for (const rec of records) {
+    try {
+      return decrypt(rec.encryptedKey);
+    } catch {
+      // 密文与当前 ENCRYPTION_KEY 不匹配，跳过该条
+    }
+  }
   return process.env.AGNES_DEFAULT_API_KEY || null;
 }
 

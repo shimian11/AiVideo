@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Input, Field } from "@/components/ui/Input";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -35,8 +33,8 @@ export default function RegisterPage() {
       setError("注册成功，但自动登录失败，请手动登录");
       return;
     }
-    router.push("/");
-    router.refresh();
+    // 整页跳转，避免路由缓存中未登录时的预取重定向把用户拉回登录页
+    window.location.assign("/");
   }
 
   return (
