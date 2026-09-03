@@ -16,6 +16,7 @@ import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Dialog } from "@/components/ui/Dialog";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 export type FieldType = "text" | "textarea" | "select";
 
@@ -71,6 +72,8 @@ export function EntityManage({
   const [describeLoading, setDescribeLoading] = useState<string | null>(null);
   // 参考图生成 loading
   const [imageLoading, setImageLoading] = useState(false);
+  // 图片预览灯箱 url（null=关闭）
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -225,7 +228,8 @@ export function EntityManage({
                     <img
                       src={c.imageUrl}
                       alt={c.title}
-                      className="mb-3 h-32 w-full rounded-lg object-cover"
+                      onClick={() => setPreviewUrl(c.imageUrl!)}
+                      className="mb-3 h-32 w-full cursor-zoom-in rounded-lg object-cover transition hover:opacity-90"
                     />
                   )}
                   <div className="flex items-start justify-between gap-2">
@@ -350,7 +354,8 @@ export function EntityManage({
                 <img
                   src={form.referenceUrl}
                   alt="参考图"
-                  className="mt-2 h-40 w-full rounded-lg object-cover"
+                  onClick={() => setPreviewUrl(form.referenceUrl)}
+                  className="mt-2 h-40 w-full cursor-zoom-in rounded-lg object-cover transition hover:opacity-90"
                 />
               ) : (
                 <p className="mt-2 text-xs text-faint">
@@ -374,6 +379,7 @@ export function EntityManage({
           </div>
         </div>
       </Dialog>
+      <ImageLightbox url={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>
   );
 }
