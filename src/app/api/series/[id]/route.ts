@@ -34,6 +34,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
   }
   const { id } = await params;
 
+  // 画布工作台需要完整的「集 -> 场 -> 分镜 -> 角色」树来构建节点图，
+  // 但普通详情页不需要。用查询参数按需加载，避免给现有页面增加无谓负载。
+  const withStoryboard = new URL(_request.url).searchParams.get("include") === "storyboard";
+
   const series = await prisma.series.findFirst({
     where: { id, userId: session.user.id },
     include: {
@@ -43,7 +47,31 @@ export async function GET(_request: Request, { params }: RouteContext) {
       seasons: {
         orderBy: { number: "asc" },
         include: {
-          episodes: { orderBy: { number: "asc" } },
+          episodes: withStoryboard
+            ? {
+                orderBy: { number: "asc" },
+                include: {
+                  scenes: {
+                    orderBy: { sortOrder: "asc" },
+                    include: {
+                      location: { select: { id: true, name: true, description: true } },
+                      shots: {
+                        orderBy: { number: "asc" },
+                        include: {
+                          characters: {
+                            include: {
+                              character: {
+                                select: { id: true, name: true, description: true },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              }
+            : true,
         },
       },
       scripts: { orderBy: { version: "desc" } },

@@ -21,6 +21,7 @@ const PROTECTED = [
   "/history",
   "/settings",
   "/jobs",
+  "/studio",
 ];
 
 /**

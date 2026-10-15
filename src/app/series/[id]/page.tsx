@@ -143,12 +143,20 @@ export default function SeriesDetailPage({ params }: { params: Promise<{ id: str
             <span>计划 {series.targetCount} 集</span>
           </p>
         </div>
-        <Link
-          href={`/series/${id}/generate-video`}
-          className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
-        >
-          AI 生视频
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/studio/${id}`}
+            className="inline-flex items-center justify-center rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink transition hover:border-accent/40 hover:text-accent"
+          >
+            画布工作台
+          </Link>
+          <Link
+            href={`/series/${id}/generate-video`}
+            className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all duration-200 hover:bg-accent-strong"
+          >
+            AI 生视频
+          </Link>
+        </div>
       </div>
 
       {/* Tab 导航 */}
