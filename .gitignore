@@ -21,6 +21,12 @@
 CLAUDE.md
 AGENTS.md
 
+# workbuddy 本地数据（任务记录 / 记忆 / 临时脚本）
+.workbuddy/
+
+# agent-browser 本地浏览器产物
+.agent-browser/
+
 # windows
 Thumbs.db
 desktop.ini
