@@ -8,6 +8,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { Icon } from "./Icon";
 import type { CanvasWorkflowApi } from "@/lib/canvas-store";
 
 export function CanvasToolbar({
@@ -25,13 +26,13 @@ export function CanvasToolbar({
     <div className="pointer-events-none absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-xl border border-line bg-surface/95 p-1 shadow-sm backdrop-blur">
       <div className="pointer-events-auto flex items-center">
         <ToolButton label="缩小" onClick={() => api.zoomBy(1 / 1.2)}>
-          −
+          <Icon name="zoom-out" size={15} />
         </ToolButton>
         <span className="min-w-[3.2rem] select-none text-center text-xs font-medium tabular-nums text-muted">
           {percent}%
         </span>
         <ToolButton label="放大" onClick={() => api.zoomBy(1.2)}>
-          +
+          <Icon name="zoom-in" size={15} />
         </ToolButton>
       </div>
 
@@ -39,10 +40,10 @@ export function CanvasToolbar({
 
       <div className="pointer-events-auto flex items-center">
         <ToolButton label="适配视图" onClick={onFit} disabled={containerSize.width === 0}>
-          ⤢
+          <Icon name="fit" size={15} />
         </ToolButton>
         <ToolButton label="重置视图" onClick={api.resetView}>
-          ⌂
+          <Icon name="reset" size={15} />
         </ToolButton>
       </div>
 
@@ -50,10 +51,10 @@ export function CanvasToolbar({
 
       <div className="pointer-events-auto flex items-center">
         <ToolButton label="自动布局" onClick={api.runAutoLayout}>
-          ⠿
+          <Icon name="layout" size={15} />
         </ToolButton>
         <ToolButton label="清空画布" onClick={api.clear}>
-          🗑
+          <Icon name="trash" size={15} />
         </ToolButton>
       </div>
 
@@ -99,7 +100,9 @@ export function CanvasEmptyHint({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="pointer-events-auto absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-surface/90 px-8 py-6 text-center backdrop-blur">
-        <span className="text-2xl opacity-50">🎬</span>
+        <span className="text-faint">
+          <Icon name="film" size={30} />
+        </span>
         <p className="text-sm font-medium text-ink">画布是空的</p>
         <p className="max-w-[16rem] text-xs leading-relaxed text-faint">
           双击画布空白处创建节点，或点击下方按钮从剧本 / 角色 / 场景 / 风格开始搭建工作流

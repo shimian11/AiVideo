@@ -11,20 +11,25 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { Icon, type IconName } from "./Icon";
 import { NODE_KIND_LABEL, NODE_SIZES, type CanvasNode } from "@/lib/canvas-types";
 import type { CanvasWorkflowApi } from "@/lib/canvas-store";
 
-/** 节点类型图标（统一线性风格，避免花哨） */
-const NODE_ICON: Record<string, string> = {
-  TEXT: "✎",
-  SCRIPT: "📄",
-  IMAGE: "🖼",
-  VIDEO: "▶",
-  AUDIO: "♪",
-  CHARACTER: "👤",
-  LOCATION: "🏞",
-  STYLE: "🎨",
-  SHOT: "🎬",
+/**
+ * 节点类型 -> 图标。
+ * 不用 emoji：彩色 emoji 依赖系统 emoji 字体，在无该字体的环境
+ * （headless Chrome、Linux 服务器）会渲染成空白，浏览器自测已实测到。
+ */
+const NODE_ICON: Record<string, IconName> = {
+  TEXT: "text",
+  SCRIPT: "script",
+  IMAGE: "image",
+  VIDEO: "video",
+  AUDIO: "audio",
+  CHARACTER: "character",
+  LOCATION: "location",
+  STYLE: "style",
+  SHOT: "shot",
 };
 
 /** 生成状态 -> 徽标色调 */
@@ -96,7 +101,9 @@ export function WorkflowNodeCard({
     >
       {/* 标题栏：拖拽把手 */}
       <div className="flex shrink-0 cursor-grab items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 active:cursor-grabbing">
-        <span className="text-sm leading-none">{NODE_ICON[node.kind]}</span>
+        <span className="text-faint">
+          <Icon name={NODE_ICON[node.kind] ?? "shot"} size={14} />
+        </span>
         <span className="truncate text-xs font-semibold text-ink">
           {node.title || kindLabel}
         </span>
@@ -110,7 +117,7 @@ export function WorkflowNodeCard({
           title="删除节点"
           className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded text-faint transition hover:bg-danger-soft hover:text-danger"
         >
-          ×
+          <Icon name="close" size={13} />
         </button>
       </div>
 
@@ -209,7 +216,7 @@ export function WorkflowNodeCard({
 
         {node.kind === "AUDIO" && (
           <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-faint">
-            <span className="text-lg">♪</span>
+            <Icon name="audio" size={22} />
             <span>配音待接入</span>
           </div>
         )}
@@ -242,7 +249,10 @@ export function WorkflowNodeCard({
               />
             )}
             {node.context?.dialogue && (
-              <p className="line-clamp-2 text-xs italic text-muted">💬 {node.context.dialogue}</p>
+              <p className="line-clamp-2 flex items-start gap-1 text-xs italic text-muted">
+                <Icon name="audio" size={12} className="mt-0.5 shrink-0" />
+                <span>{node.context.dialogue}</span>
+              </p>
             )}
             <div className="mt-auto flex gap-2">
               <button
@@ -254,9 +264,9 @@ export function WorkflowNodeCard({
               <button
                 onClick={act("open-episode")}
                 title="在分镜板中打开"
-                className="rounded-lg border border-line px-2 py-1.5 text-xs text-muted transition hover:border-line-strong hover:text-ink"
+                className="flex items-center rounded-lg border border-line px-2 py-1.5 text-xs text-muted transition hover:border-line-strong hover:text-ink"
               >
-                ↗
+                <Icon name="external" size={13} />
               </button>
             </div>
           </>
