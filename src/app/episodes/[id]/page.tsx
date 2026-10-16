@@ -429,7 +429,9 @@ export default function EpisodePage({ params }: { params: Promise<{ id: string }
                       </div>
                       <div>
                         <label className="text-xs font-medium text-faint">时长（秒）</label>
-                        <Input type="number" value={editDuration} onChange={(e) => setEditDuration(Number(e.target.value))} min={3} max={10} className="mt-1" />
+                        {/* 下限 4 秒：Agnes Video 2.5 的 seconds 合法区间是 4~12，
+                            填 3 会在生成时被 API 拒绝 */}
+                        <Input type="number" value={editDuration} onChange={(e) => setEditDuration(Number(e.target.value))} min={4} max={12} className="mt-1" />
                       </div>
                     </div>
                     <div>

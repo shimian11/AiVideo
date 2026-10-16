@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { use } from "react";
-import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
+import { VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS } from "@/lib/constants";
 import { triggerDownload, compressImageFile } from "@/lib/client-utils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -120,8 +120,8 @@ export default function SeriesGenerateVideoPage({
 
   // ---- 参数 ----
   const [durationIdx, setDurationIdx] = useState(1);
-  const [sizeValue, setSizeValue] = useState<string>("1280x720");
-  const [negativePrompt, setNegativePrompt] = useState("");
+  // Agnes Video 2.5 的 size 固定 720P，尺寸由宽高比决定；短剧用竖屏 9:16
+  const [aspectRatio, setAspectRatio] = useState<string>("9:16");
   const [seed, setSeed] = useState("");
 
   // ---- 生成状态 ----
@@ -215,14 +215,6 @@ export default function SeriesGenerateVideoPage({
     if (!dirty) setAssembledPrompt(computeAssembled());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCharIds, locationId, styleId, actionPrompt, series, dirty]);
-
-  // 选中风格时把风格的 negativePrompt 预填到高级选项（保证一致性）
-  useEffect(() => {
-    if (!series) return;
-    const s = series.styles.find((x) => x.id === styleId);
-    setNegativePrompt(s?.negativePrompt || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleId, series]);
 
   // ---- 资源 chips 切换 ----
   function toggleChar(cid: string) {
@@ -380,19 +372,15 @@ export default function SeriesGenerateVideoPage({
     }
 
     const dur = VIDEO_DURATIONS[durationIdx];
-    const sizePreset =
-      VIDEO_SIZE_PRESETS.find((s) => s.value === sizeValue) || VIDEO_SIZE_PRESETS[0];
 
     const body: Record<string, unknown> = {
       prompt: assembledPrompt,
       mode,
       seriesId: id,
-      numFrames: dur.numFrames,
-      frameRate: dur.frameRate,
-      width: sizePreset.width,
-      height: sizePreset.height,
+      seconds: dur.seconds,
+      // 短剧是竖屏，固定 9:16
+      aspectRatio,
     };
-    if (negativePrompt.trim()) body.negativePrompt = negativePrompt.trim();
     if (seed.trim() && !Number.isNaN(Number(seed))) body.seed = Number(seed);
     if (mode === "img2vid") body.image = img2vidImage;
     else if (mode === "keyframes") body.keyframes = keyframes;
@@ -769,17 +757,17 @@ export default function SeriesGenerateVideoPage({
                 onChange={(e) => setDurationIdx(Number(e.target.value))}
               >
                 {VIDEO_DURATIONS.map((d, i) => (
-                  <option key={d.numFrames} value={i}>
+                  <option key={d.seconds} value={i}>
                     {d.label}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="尺寸">
-              <Select value={sizeValue} onChange={(e) => setSizeValue(e.target.value)}>
-                {VIDEO_SIZE_PRESETS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
+            <Field label="宽高比">
+              <Select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+                {VIDEO_ASPECT_RATIOS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
                   </option>
                 ))}
               </Select>
@@ -792,13 +780,6 @@ export default function SeriesGenerateVideoPage({
               高级选项
             </summary>
             <div className="mt-3 flex flex-col gap-3">
-              <Field label="反向提示词" hint="选中风格会自动预填，可手动调整">
-                <Input
-                  value={negativePrompt}
-                  onChange={(e) => setNegativePrompt(e.target.value)}
-                  placeholder="要避免的内容"
-                />
-              </Field>
               <Field label="随机种子" hint="固定后可复现同一画面">
                 <Input
                   value={seed}
@@ -806,6 +787,11 @@ export default function SeriesGenerateVideoPage({
                   placeholder="留空则随机"
                 />
               </Field>
+              {/* Agnes Video 2.5 系列已移除 negative_prompt 参数。
+                  风格档案里的负面提示词字段仍保留在库中，但不再参与视频生成 */}
+              <p className="text-xs text-faint">
+                当前模型（Video 2.5 Flash）暂不支持反向提示词，输出固定 720P。
+              </p>
             </div>
           </details>
 

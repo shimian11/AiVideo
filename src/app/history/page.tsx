@@ -27,6 +27,15 @@ function configSummary(type: "IMAGE" | "VIDEO", config: Record<string, unknown>)
   if (type === "IMAGE") {
     return [config.size, config.ratio, config.mode].filter(Boolean).join(" · ");
   }
+  // 视频配置有两代格式：
+  // 旧（v2.0 协议）：numFrames + frameRate + width/height
+  // 新（2.5 协议）：seconds + aspectRatio，size 固定 720P
+  // 历史数据两种都存在，需都能正确展示。
+  if (config.seconds) {
+    return [config.mode, `${config.seconds}s`, config.aspectRatio, "720P"]
+      .filter(Boolean)
+      .join(" · ");
+  }
   const frames = config.numFrames;
   const fps = config.frameRate;
   const sec = frames && fps ? `${(Number(frames) / Number(fps)).toFixed(1)}s` : null;

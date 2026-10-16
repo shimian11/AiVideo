@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { getDecryptedApiKey } from "@/lib/api-key";
 import { createVideoTask, AgnesError } from "@/lib/agnes";
-import { isValidNumFrames } from "@/lib/constants";
+import { VIDEO_SECONDS_MAX, VIDEO_SECONDS_MIN } from "@/lib/constants";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -19,12 +19,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const {
-      prompt, mode, image, keyframes, width, height,
-      numFrames, frameRate, negativePrompt, seed, seriesId,
+      prompt, mode, image, keyframes, seconds, aspectRatio, seed, seriesId,
     } = body as {
       prompt?: string; mode?: string; image?: string; keyframes?: string[];
-      width?: number; height?: number; numFrames?: number; frameRate?: number;
-      negativePrompt?: string; seed?: number | string; seriesId?: string;
+      seconds?: string | number; aspectRatio?: string; seed?: number | string; seriesId?: string;
     };
 
     if (!prompt?.trim()) return Response.json({ error: "请输入提示词" }, { status: 400 });
@@ -35,8 +33,17 @@ export async function POST(request: Request) {
     if (m === "keyframes" && (!Array.isArray(keyframes) || keyframes.length < 2)) {
       return Response.json({ error: "关键帧动画至少需要 2 张图片" }, { status: 400 });
     }
-    if (numFrames !== undefined && numFrames !== null && !isValidNumFrames(Number(numFrames))) {
-      return Response.json({ error: "num_frames 必须满足 <= 441 且为 8n+1" }, { status: 400 });
+    // 时长收敛到 API 合法区间。旧协议是 num_frames + 8n+1 约束，已废弃；
+    // 分镜表历史数据可能是 3 秒，这里夹到下限 4 秒而不是报错。
+    let secondsStr: string | undefined;
+    if (seconds !== undefined && seconds !== null && seconds !== "") {
+      const n = Number(seconds);
+      if (!Number.isFinite(n)) {
+        return Response.json({ error: "时长必须是数字" }, { status: 400 });
+      }
+      secondsStr = String(
+        Math.min(VIDEO_SECONDS_MAX, Math.max(VIDEO_SECONDS_MIN, Math.round(n))),
+      );
     }
 
     const task = await createVideoTask(
@@ -45,11 +52,8 @@ export async function POST(request: Request) {
         mode: m,
         image: image || undefined,
         keyframes: Array.isArray(keyframes) ? keyframes : undefined,
-        width: width ? Number(width) : undefined,
-        height: height ? Number(height) : undefined,
-        numFrames: numFrames ? Number(numFrames) : undefined,
-        frameRate: frameRate ? Number(frameRate) : undefined,
-        negativePrompt: negativePrompt || undefined,
+        seconds: secondsStr,
+        aspectRatio: aspectRatio || undefined,
         seed: seed !== undefined && seed !== "" ? Number(seed) : undefined,
       },
       apiKey,
@@ -65,8 +69,8 @@ export async function POST(request: Request) {
         type: "VIDEO",
         prompt: prompt.trim(),
         config: {
-          mode: m, width, height, numFrames, frameRate,
-          negativePrompt: negativePrompt || null, seed: seed ?? null,
+          mode: m, seconds: secondsStr ?? null, aspectRatio: aspectRatio ?? null,
+          seed: seed ?? null,
         },
       },
     });

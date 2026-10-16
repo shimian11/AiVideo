@@ -38,20 +38,28 @@ function configEntries(
   }
   // VIDEO
   push(entries, "模式", config.mode);
-  if (config.width && config.height) {
-    entries.push({ label: "分辨率", value: `${config.width}×${config.height}` });
-  }
-  push(entries, "帧数", config.numFrames);
-  if (config.frameRate) {
-    entries.push({ label: "帧率", value: `${config.frameRate} fps` });
-  }
-  if (config.numFrames && config.frameRate) {
-    const sec = Number(config.numFrames) / Number(config.frameRate);
-    if (Number.isFinite(sec) && sec > 0) {
-      entries.push({ label: "时长", value: `${sec.toFixed(1)} 秒` });
+  if (config.seconds) {
+    // 新协议（Video 2.5）：seconds + aspectRatio，size 固定 720P
+    entries.push({ label: "时长", value: `${config.seconds} 秒` });
+    push(entries, "宽高比", config.aspectRatio);
+    entries.push({ label: "分辨率", value: "720P" });
+  } else {
+    // 旧协议（v2.0，已退役）：numFrames + frameRate + width/height
+    if (config.width && config.height) {
+      entries.push({ label: "分辨率", value: `${config.width}×${config.height}` });
     }
+    push(entries, "帧数", config.numFrames);
+    if (config.frameRate) {
+      entries.push({ label: "帧率", value: `${config.frameRate} fps` });
+    }
+    if (config.numFrames && config.frameRate) {
+      const sec = Number(config.numFrames) / Number(config.frameRate);
+      if (Number.isFinite(sec) && sec > 0) {
+        entries.push({ label: "时长", value: `${sec.toFixed(1)} 秒` });
+      }
+    }
+    push(entries, "反向提示词", config.negativePrompt);
   }
-  push(entries, "反向提示词", config.negativePrompt);
   if (config.seed !== undefined && config.seed !== null && config.seed !== "") {
     entries.push({ label: "种子", value: String(config.seed) });
   }

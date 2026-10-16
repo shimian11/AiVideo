@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { VIDEO_DURATIONS, VIDEO_SIZE_PRESETS } from "@/lib/constants";
+import { VIDEO_DURATIONS, VIDEO_ASPECT_RATIOS } from "@/lib/constants";
 import { triggerDownload, compressImageFile } from "@/lib/client-utils";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -25,9 +25,9 @@ export default function VideoStudio() {
   const [img2vid, setImg2vid] = useState<string>("");
   const [img2vidPreview, setImg2vidPreview] = useState<string>("");
   const [keyframes, setKeyframes] = useState<string[]>([]);
-  const [durationIdx, setDurationIdx] = useState(1); // 默认约 5 秒
-  const [sizeValue, setSizeValue] = useState<string>("1280x720");
-  const [negativePrompt, setNegativePrompt] = useState("");
+  const [durationIdx, setDurationIdx] = useState(1); // 默认 5 秒（推荐）
+  // Agnes Video 2.5 的 size 固定 720P，具体尺寸由宽高比决定
+  const [aspectRatio, setAspectRatio] = useState<string>("16:9");
   const [seed, setSeed] = useState("");
   const [enhancing, setEnhancing] = useState(false);
 
@@ -210,17 +210,13 @@ export default function VideoStudio() {
     }
 
     const dur = VIDEO_DURATIONS[durationIdx];
-    const sizePreset = VIDEO_SIZE_PRESETS.find((s) => s.value === sizeValue) || VIDEO_SIZE_PRESETS[0];
 
     const body: Record<string, unknown> = {
       prompt,
       mode,
-      numFrames: dur.numFrames,
-      frameRate: dur.frameRate,
-      width: sizePreset.width,
-      height: sizePreset.height,
+      seconds: dur.seconds,
+      aspectRatio,
     };
-    if (negativePrompt.trim()) body.negativePrompt = negativePrompt.trim();
     if (seed.trim() && !Number.isNaN(Number(seed))) body.seed = Number(seed);
     if (mode === "img2vid") body.image = img2vid;
     else if (mode === "keyframes") body.keyframes = keyframes;
@@ -381,17 +377,17 @@ export default function VideoStudio() {
               onChange={(e) => setDurationIdx(Number(e.target.value))}
             >
               {VIDEO_DURATIONS.map((d, i) => (
-                <option key={d.numFrames} value={i}>
+                <option key={d.seconds} value={i}>
                   {d.label}
                 </option>
               ))}
             </Select>
           </Field>
-          <Field label="尺寸">
-            <Select value={sizeValue} onChange={(e) => setSizeValue(e.target.value)}>
-              {VIDEO_SIZE_PRESETS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
+          <Field label="宽高比">
+            <Select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+              {VIDEO_ASPECT_RATIOS.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
                 </option>
               ))}
             </Select>
@@ -404,15 +400,15 @@ export default function VideoStudio() {
           </summary>
           <div className="mt-3 flex flex-col gap-3">
             <Input
-              value={negativePrompt}
-              onChange={(e) => setNegativePrompt(e.target.value)}
-              placeholder="反向提示词（要避免的内容）"
-            />
-            <Input
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
               placeholder="随机种子（可选，固定后可复现）"
             />
+            {/* Agnes Video 2.5 系列已不再支持 negative_prompt 参数，
+                故移除反向提示词输入框，改为明确告知，避免用户输入后无效果 */}
+            <p className="text-xs text-faint">
+              当前模型（Video 2.5 Flash）暂不支持反向提示词，输出固定 720P。
+            </p>
           </div>
         </details>
 

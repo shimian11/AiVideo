@@ -13,7 +13,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
-import { generateImage, createVideoTask, getVideoResult } from "./lib/agnes";
+import { generateImage, createVideoTask, getVideoResult, clampVideoSeconds } from "./lib/agnes";
 import { buildImagePrompt, buildVideoPrompt } from "./lib/prompt-builder";
 
 const prisma = new PrismaClient({ log: ["error", "warn"] });
@@ -303,16 +303,16 @@ async function executeVideoStep(shot: any, apiKey: string): Promise<{ url: strin
   const fullVideoPrompt = buildVideoPrompt(shot);
   console.log(`[Worker] 生成视频 - 分镜#${shot.number}: ${fullVideoPrompt.slice(0, 60)}...`);
 
-  // 创建视频任务（图生视频模式）
+  // 创建视频任务（用关键帧作首帧）。
+  // 竖屏短剧固定 9:16；时长按分镜 duration 收敛到 API 合法区间（4~12 秒），
+  // 因为分镜表里的历史数据可能是 3 秒，直接传会被 API 拒绝。
   const task = await createVideoTask(
     {
       prompt: fullVideoPrompt,
       mode: "img2vid",
       image: shot.keyframeUrl,
-      width: 720,
-      height: 1280,
-      numFrames: Math.min(shot.duration * 24, 121), // 根据 duration 计算帧数，上限 121（约5秒）
-      frameRate: 24,
+      seconds: clampVideoSeconds(shot.duration),
+      aspectRatio: "9:16",
     },
     apiKey,
   );
